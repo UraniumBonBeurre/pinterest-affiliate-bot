@@ -68,72 +68,80 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     img = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(img)
     
-    font_size = 280 # Taille massivement augmentée car la police manuscrite est fine
-    try:
-        font_path = BASE_DIR / "assets" / "fonts" / "Caveat-Bold.ttf"
-        font = ImageFont.truetype(str(font_path), font_size)
-    except:
-        try:
-           font = ImageFont.truetype("arialbd.ttf", font_size)
-        except:
-           font = ImageFont.load_default()
+    # On cherche dynamiquement la taille de police idéale (très grande pour le cursif)
+    font_path = BASE_DIR / "assets" / "fonts" / "Caveat-Bold.ttf"
     
-    # Wrap text (pas de uppercase() pour garder le style handwriting)
-    words = str(texte).split()
+    max_font_size = 350
+    min_font_size = 150
+    margin = 120 # Marge totale (gauche + droite)
+    max_width = img.width - margin
+    
+    font_size = max_font_size
+    font = None
     lines = []
-    current_line = []
     
-    char_spacing = -5 # Correction : on réduit l'espacement pour les polices manuscrites afin que ça "s'attache" mieux
-    
-    for word in words:
-        current_line.append(word)
-        joined_line = " ".join(current_line)
-        line_w = 0
-        for char in joined_line:
-            line_w += draw.textlength(char, font=font) + char_spacing
+    # Wrap text and dynamically reduce font size if even the longest word doesn't fit
+    words = str(texte).split()
+    while font_size >= min_font_size:
+        try:
+            font = ImageFont.truetype(str(font_path), font_size)
+        except:
+            try:
+                font = ImageFont.truetype("arialbd.ttf", font_size)
+            except:
+                font = ImageFont.load_default()
+                
+        # Tentative de wrap avec cette taille
+        lines = []
+        current_line = []
+        word_too_long = False
         
-        if line_w > img.width - 80: # Marges réduites pour laisser de la place
-            current_line.pop()
-            if current_line:
-                lines.append(" ".join(current_line))
-            current_line = [word]
-    if current_line:
-        lines.append(" ".join(current_line))
+        for word in words:
+            if draw.textlength(word, font=font) > max_width:
+                word_too_long = True
+                break
+                
+            current_line.append(word)
+            line_w = draw.textlength(" ".join(current_line), font=font)
+            if line_w > max_width:
+                current_line.pop()
+                if current_line:
+                    lines.append(" ".join(current_line))
+                current_line = [word]
+                
+        if word_too_long:
+            font_size -= 20
+            continue
+            
+        if current_line:
+            lines.append(" ".join(current_line))
+            
+        break # Si on arrive ici, le wrap a fonctionné avec cette taille
         
-    line_h = int(font_size * 0.9) # Interligne réduit car il y a beaucoup de vide dans cette typo
+    line_h = int(font_size * 1.1)
     total_h = len(lines) * line_h
     
-    y = max(0, (img.height - total_h) // 2) - 40 # Léger décalage vers le haut pour centrage optique
+    y = max(0, (img.height - total_h) // 2) - 50 # Centrage + léger ajustement optique
     
     for line in lines:
-        line_w = 0
-        for char in line:
-            line_w += draw.textlength(char, font=font) + char_spacing
-        if len(line) > 0:
-            line_w -= char_spacing # retirer l'espacement du dernier caractère
-        
+        line_w = draw.textlength(line, font=font)
         x = (img.width - line_w) // 2
         
-        for char in line:
-            cw = draw.textlength(char, font=font)
-            
-            # Contour léger (stroke) pour lisibilité
-            stroke_color = (0, 0, 0, 160)
-            stroke_w = 3
-            for dx in range(-stroke_w, stroke_w + 1, 2):
-                for dy in range(-stroke_w, stroke_w + 1, 2):
-                    if dx != 0 or dy != 0:
-                        draw.text((x + dx, y + dy), char, font=font, fill=stroke_color)
+        # Contour léger (stroke) pour lisibilité sans casser les liaisons
+        stroke_color = (0, 0, 0, 160)
+        stroke_w = 4
+        for dx in range(-stroke_w, stroke_w + 1, 2):
+            for dy in range(-stroke_w, stroke_w + 1, 2):
+                if dx != 0 or dy != 0:
+                    draw.text((x + dx, y + dy), line, font=font, fill=stroke_color)
                         
-            # Ombre portée de profondeur
-            shadow = (0, 0, 0, 220)
-            draw.text((x+5, y+5), char, font=font, fill=shadow)
+        # Ombre portée de profondeur
+        shadow = (0, 0, 0, 220)
+        draw.text((x+6, y+6), line, font=font, fill=shadow)
 
-            # Texte au premier plan
-            draw.text((x, y), char, font=font, fill=(255, 255, 255))
-            
-            x += cw + char_spacing
-            
+        # Texte au premier plan (dessiné d'un seul bloc pour garder l'effet cursif lié intact)
+        draw.text((x, y), line, font=font, fill=(255, 255, 255))
+        
         y += line_h
     
     img.save(output_path, "JPEG", quality=98, optimize=True)

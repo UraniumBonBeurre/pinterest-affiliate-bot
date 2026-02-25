@@ -1,0 +1,64 @@
+name: Daily Pinterest Autopilot
+
+on:
+  schedule:
+    # Run every day at 12:00 UTC (We will use sleep to randomize the exact time)
+    - cron: '0 12 * * *'
+  workflow_dispatch: # Allow manually triggering the workflow
+
+jobs:
+  run-autopilot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Randomize Start Time
+        if: github.event_name == 'schedule'
+        run: |
+          # Sleep for a random amount of time between 0 and 6 hours (up to 360 minutes) to avoid exact cron patterns on Pinterest
+          DELAY=$((RANDOM % 21600))
+          echo "Sleeping for $DELAY seconds to humanize execution time..."
+          sleep $DELAY
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run Autopilot Main Script
+        id: autopilot
+        env:
+          PINS_PER_DAY: 5
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          PINTEREST_ACCESS_TOKEN: ${{ secrets.PINTEREST_ACCESS_TOKEN }}
+          PINTEREST_BOARD_ID: ${{ secrets.PINTEREST_BOARD_ID }}
+          AMAZON_ASSOCIATE_TAG: ${{ secrets.AMAZON_ASSOCIATE_TAG }}
+        run: |
+          python src/main.py
+          
+      - name: Commit Updated ASIN Pool
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/asin_pool.json
+          git commit -m "Auto-update ASIN pool (marked used)" || echo "No changes to commit"
+          git push
+          
+      - name: Create Low Pool Issue
+        if: steps.autopilot.outputs.pool_low == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "URGENT : Réserve ASIN déco presque vide (< 50)" \
+            --body "Le script Autopilot a détecté qu'il restait moins de 50 ASINs non utilisés dans data/asin_pool.json. Préparez un nouveau PR avec 200/300 nouveaux produits pour éviter une rupture !"

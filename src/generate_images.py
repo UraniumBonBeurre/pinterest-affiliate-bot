@@ -23,7 +23,7 @@ def generate_image_hf(prompt: str) -> Image.Image:
     if not HF_TOKEN:
         raise GenerationError("HF_TOKEN is not set in .env")
         
-    API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
+    API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
     
     # Exact user specified prompt architecture

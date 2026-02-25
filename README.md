@@ -88,7 +88,7 @@ Ce repository est configuré pour tourner sous **GitHub Actions** 100% en autono
 **Configuration GitHub Requise :**
 Ajoutez ces variables dans les **Settings > Secrets & Variables > Actions** de votre dépôt GitHub :
 - `TOGETHER_API_KEY` (Clé Together AI)
-- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_HASH` (Pour Cloudflare R2)
 - `PINTEREST_ACCESS_TOKEN`, `PINTEREST_BOARD_ID`
 - `AMAZON_ASSOCIATE_TAG` (ex: `afprod-21`)
 

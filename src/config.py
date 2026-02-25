@@ -30,8 +30,10 @@ DEFAULT_NICHE = os.getenv("DEFAULT_NICHE", "general")
 DEFAULT_LANG = os.getenv("DEFAULT_LANG", "fr")
 PUBLISH_DRY_RUN = os.getenv("PUBLISH_DRY_RUN", "true").lower() in ["true", "1", "yes"]
 
-# Cloudinary Settings
-CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
-CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
-CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
-CLOUDINARY_FOLDER = os.getenv("CLOUDINARY_FOLDER", "pinterest_pins")
+# Cloudflare R2 Settings
+R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
+R2_PUBLIC_HASH = os.getenv("R2_PUBLIC_HASH")
+

@@ -1,6 +1,7 @@
+import os
+import boto3
 import pandas as pd
-import cloudinary.uploader
-from config import DATA_DIR, PINTEREST_ACCESS_TOKEN, PINTEREST_API_BASE, PINTEREST_BOARD_ID, PUBLISH_DRY_RUN, AMAZON_ASSOCIATE_TAG
+from config import DATA_DIR, PINTEREST_ACCESS_TOKEN, PINTEREST_API_BASE, PINTEREST_BOARD_ID, PUBLISH_DRY_RUN, AMAZON_ASSOCIATE_TAG, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_HASH
 from pinterest_api import PinterestAPI, PinterestAPIException
 from utils import now_ts
 
@@ -8,22 +9,51 @@ def get_amz_link(asin: str) -> str:
     asin = str(asin).strip()
     return f"https://www.amazon.fr/dp/{asin}?tag={AMAZON_ASSOCIATE_TAG}&linkCode=ogi"
 
+def upload_to_r2(local_image_path: str) -> str:
+    """Upload image to Cloudflare R2 and return the public URL"""
+    if not all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_HASH]):
+        raise Exception("Missing R2 credentials in environment variables.")
+        
+    endpoint_url = f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+    
+    s3 = boto3.client('s3',
+        endpoint_url=endpoint_url,
+        aws_access_key_id=R2_ACCESS_KEY_ID,
+        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        region_name="auto"
+    )
+    
+    file_name = os.path.basename(local_image_path)
+    
+    # Upload the file
+    s3.upload_file(local_image_path, R2_BUCKET_NAME, file_name, ExtraArgs={"ContentType": "image/jpeg"})
+    
+    # Construct the public URL using the dev hash
+    # Example format: https://pub-[hash].r2.dev/[file_name]
+    public_url = f"https://pub-{R2_PUBLIC_HASH}.r2.dev/{file_name}"
+    
+    return public_url
+
 def publish_single_pin(local_image_path: str, title: str, asin: str) -> bool:
     """
-    1. Upload image to Cloudinary
-    2. Build Amazon Link
-    3. Publish to Pinterest
+    1. Upload image to Cloudflare R2
+    2. Delete local image to save space
+    3. Build Amazon Link
+    4. Publish to Pinterest
     Used primarily by the Autopilot functionality.
     """
-    print(f"[{now_ts()}] Uploading to Cloudinary...")
+    print(f"[{now_ts()}] Uploading to Cloudflare R2...")
     try:
-        response = cloudinary.uploader.upload(
-            local_image_path,
-            folder="pinterest_affiliate"
-        )
-        image_url = response.get('secure_url')
+        image_url = upload_to_r2(local_image_path)
+        print(f"[{now_ts()}] -> Image uploaded successfully: {image_url}")
+        
+        # Delete local image to save runner space
+        if os.path.exists(local_image_path):
+            os.remove(local_image_path)
+            print(f"[{now_ts()}] -> Local image deleted.")
+            
     except Exception as e:
-        print(f"[{now_ts()}] Cloudinary API Error: {e}")
+        print(f"[{now_ts()}] R2 API Error: {e}")
         raise
         
     print(f"[{now_ts()}] Publishing to Pinterest Board {PINTEREST_BOARD_ID}...")

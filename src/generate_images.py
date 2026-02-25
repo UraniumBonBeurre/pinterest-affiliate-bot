@@ -9,6 +9,7 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 import requests
 import time
+from tenacity import retry, wait_fixed, stop_after_attempt, retry_if_exception_type
 from config import HF_TOKEN, DATA_DIR, IMAGES_DIR, BASE_DIR
 
 class GenerationError(Exception):

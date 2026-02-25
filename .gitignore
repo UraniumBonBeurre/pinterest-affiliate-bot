@@ -16,7 +16,7 @@ venv.bak/
 output/images/
 output/logs/
 data/*
-!data/pins_input.csv
+!data/pins_ideas_to_fill.csv
 
 # IDEs
 .vscode/

@@ -19,6 +19,8 @@ for directory in [DATA_DIR, IMAGES_DIR, LOGS_DIR]:
 # Hugging Face Settings
 HF_TOKEN = os.getenv("HF_TOKEN")
 
+
+
 # Pinterest Settings
 PINTEREST_ACCESS_TOKEN = os.getenv("PINTEREST_ACCESS_TOKEN")
 PINTEREST_API_BASE = os.getenv("PINTEREST_API_BASE", "https://api-sandbox.pinterest.com/v5").rstrip('/')

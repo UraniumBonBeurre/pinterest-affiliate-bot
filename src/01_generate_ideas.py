@@ -50,7 +50,7 @@ def generate_ideas():
 Your JSON must be an object with a 'pins' array containing objects with the following keys:
 - slug: unique identifier string (e.g. pin_word_001)
 - title: Catchy SEO title string (max 90 chars)
-- overlay_text: Very short punchy text string for the image overlay (2-5 words)
+- overlay_text: ULTRA catchy text for the image overlay. Rules: max 7 words, emotional + immediate benefit, capitalize only important words. Must make people want to click and "see more".
 - description: Engaging description string (200-300 chars) ending exactly with "[LIEN_AFFILIATE]"
 - niche: Category string
 - keywords: 5-10 relevant keywords string, comma separated

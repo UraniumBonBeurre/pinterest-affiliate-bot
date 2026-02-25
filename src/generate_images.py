@@ -57,26 +57,25 @@ def generate_image_hf(prompt: str) -> Image.Image:
         raise GenerationError(f"HF Request Error: {e}")
 
 def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> str:
+    """
+    Ajoute un beau texte overlay Pinterest sur l'image.
+    Style moderne, lisible, ombre subtile, sans boîte de fond.
+    """
     if output_path is None:
-        output_path = image_path.replace(".png", "_with_text.png")
+        output_path = image_path.replace(".png", "_final.png")
         if output_path == image_path:
-             output_path = image_path.replace(".jpg", "_with_text.jpg")
+             output_path = image_path.replace(".jpg", "_final.jpg")
     
     img = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(img)
     
-    # Téléchargement d'une police plus stylisée et moins "impactante" (Montserrat Medium)
-    font_dir = BASE_DIR / "assets" / "fonts"
-    font_dir.mkdir(parents=True, exist_ok=True)
-    font_path = font_dir / "Montserrat-Medium.ttf"
-
+    font_size = 115
     try:
-        font_size = 110
+        font_path = BASE_DIR / "assets" / "fonts" / "Montserrat-Bold.ttf"
         font = ImageFont.truetype(str(font_path), font_size)
     except:
         try:
-           font_size = 110
-           font = ImageFont.truetype("arial.ttf", font_size)
+           font = ImageFont.truetype("arialbd.ttf", font_size)
         except:
            font = ImageFont.load_default()
     
@@ -87,40 +86,35 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     for word in words:
         current_line.append(word)
         line_w = draw.textlength(" ".join(current_line), font=font)
-        if line_w > img.width - 140:
+        if line_w > img.width - 100:
             current_line.pop()
             lines.append(" ".join(current_line))
             current_line = [word]
     if current_line:
         lines.append(" ".join(current_line))
         
-    line_h = int(font_size * 1.5) # Espacement interligne beaucoup plus large
-    total_h = len(lines) * line_h
+    line_h = int(font_size * 1.3)
     
-    # Centrage vertical
-    start_y = max(0, (img.height - total_h) // 2)
-    
-    y = start_y
+    y = 95  # Position idéale (tiers supérieur)
     for line in lines:
         line_w = draw.textlength(line, font=font)
         x = (img.width - line_w) // 2
         
-        # Création d'un bon contour (stroke) pour faire ressortir les lettres sans fond opaque
-        stroke_width = 4
-        for dx in range(-stroke_width, stroke_width + 1, 2):
-            for dy in range(-stroke_width, stroke_width + 1, 2):
-                if dx != 0 or dy != 0:
-                    draw.text((x + dx, y + dy), line, font=font, fill=(0, 0, 0, 200))
-                    
-        # Ombre portée douce en bas à droite pour la profondeur
-        draw.text((x + 8, y + 8), line, font=font, fill=(0, 0, 0, 150))
-        
-        # Texte blanc principal
+        # Ombre noire très douce (3 passes pour effet profondeur)
+        shadow = (0, 0, 0, 200)
+        draw.text((x+7, y+7), line, font=font, fill=shadow)
+        draw.text((x+5, y+5), line, font=font, fill=shadow)
+        draw.text((x+3, y+3), line, font=font, fill=shadow)
+
+        # Texte principal : blanc pur
         draw.text((x, y), line, font=font, fill=(255, 255, 255))
+        
+        # Petit liseré blanc très fin pour encore plus de lisibilité
+        draw.text((x-1, y-1), line, font=font, fill=(255, 255, 255, 80))
+        
         y += line_h
     
-    img = img.convert('RGB')
-    img.save(output_path, "JPEG", quality=95)
+    img.save(output_path, "JPEG", quality=98, optimize=True)
     return output_path
 
 def generate_interior_image(subject: str, image_path: str, overlay_text: str = None) -> str:

@@ -83,7 +83,8 @@ Your JSON must be an object with a 'pins' array containing objects with the foll
         file_exists = os.path.isfile(output_file)
         
         with open(output_file, 'a', encoding='utf-8', newline='') as f:
-            fieldnames = ["slug", "title", "overlay_text", "description", "search_link_amazon", "amazon_product_url", "asin", "niche", "keywords"]
+            # Reordered fieldnames as requested
+            fieldnames = ["search_link_amazon", "amazon_product_url", "slug", "title", "overlay_text", "description", "niche", "keywords"]
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             if not file_exists:
                 writer.writeheader()
@@ -94,13 +95,12 @@ Your JSON must be an object with a 'pins' array containing objects with the foll
                 search_link = f"https://www.amazon.fr/s?k={encoded_query}"
                 
                 row = {
+                    "search_link_amazon": search_link,
+                    "amazon_product_url": "", # Empty for manual fill
                     "slug": pin.get("slug", ""),
                     "title": pin.get("title", ""),
                     "overlay_text": pin.get("overlay_text", ""),
                     "description": pin.get("description", ""),
-                    "search_link_amazon": search_link,
-                    "amazon_product_url": "", # Empty for manual fill
-                    "asin": "", # Empty for manual fill
                     "niche": pin.get("niche", ""),
                     "keywords": pin.get("keywords", "")
                 }

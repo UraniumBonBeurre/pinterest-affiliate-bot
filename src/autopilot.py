@@ -23,30 +23,30 @@ def main():
         logging.error(f"Failed to read CSV: {e}")
         return
 
-    # Filter rows that actually have an ASIN filled by the user
+    # Filter rows that actually have an Amazon URL filled by the user
     # NaN check or empty string check
-    available_mask = df['asin'].notna() & (df['asin'].str.strip() != "")
+    available_mask = df['amazon_product_url'].notna() & (df['amazon_product_url'].str.strip() != "")
     available_df = df[available_mask]
     
     available_count = len(available_df)
     total_count = len(df)
     
-    logging.info(f"Loaded CSV: {total_count} total ideas, {available_count} with ASIN configured and ready.")
+    logging.info(f"Loaded CSV: {total_count} total ideas, {available_count} with Amazon URL configured and ready.")
     
-    # 1. Health check (Trigger GH issue if < 50 ASINs remaining)
+    # 1. Health check (Trigger GH issue if < 50 URLs remaining)
     is_low = available_count < 50
     if is_low:
         if "GITHUB_OUTPUT" in os.environ:
             with open(os.environ["GITHUB_OUTPUT"], "a") as env_file:
                 env_file.write("pool_low=true\n")
-        logging.warning(f"⚠️ ASIN Pool is running low ({available_count} < 50)!")
+        logging.warning(f"⚠️ URL Pool is running low ({available_count} < 50)!")
     else:
         if "GITHUB_OUTPUT" in os.environ:
             with open(os.environ["GITHUB_OUTPUT"], "a") as env_file:
                 env_file.write("pool_low=false\n")
                 
     if available_count == 0:
-        logging.error("No more ASINs available. Exiting.")
+        logging.error("No more URLs available. Exiting.")
         return
         
     # 2. Pick N random products
@@ -59,8 +59,19 @@ def main():
     indexes_to_drop = []
     
     for idx, row in chosen_df.iterrows():
-        asin = str(row.get("asin")).strip()
+        url = str(row.get("amazon_product_url")).strip()
         title = str(row.get("title")).strip()
+        
+        # Extract ASIN using regex (looking for exactly 10 alphanumeric chars in the URL path)
+        import re
+        asin_match = re.search(r"/([a-zA-Z0-9]{10})(?:[/?]|$)", url)
+        
+        if not asin_match:
+            logging.error(f"Could not extract ASIN from URL: {url} - Skipping.")
+            indexes_to_drop.append(idx) # Drop it so it doesn't block future runs
+            continue
+            
+        asin = asin_match.group(1)
         logging.info(f"Processing ASIN: {asin} - {title[:30]}...")
         
         try:

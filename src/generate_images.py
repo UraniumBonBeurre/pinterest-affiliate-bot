@@ -89,8 +89,31 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         lines.append(" ".join(current_line))
         
     line_h = 130 # approximate line height
+    total_h = len(lines) * line_h
     
-    y = 80  # un peu en dessous du haut
+    # Centrage vertical
+    start_y = (img.height - total_h) // 2
+    
+    # Dessiner un fond semi-transparent pour la lisibilité
+    max_line_w = max(draw.textlength(line, font=font) for line in lines) if lines else 0
+    box_padding_x = 60
+    box_padding_y = 60
+    
+    box_x1 = max(0, (img.width - max_line_w) // 2 - box_padding_x)
+    box_y1 = max(0, start_y - box_padding_y)
+    box_x2 = min(img.width, (img.width + max_line_w) // 2 + box_padding_x)
+    box_y2 = min(img.height, start_y + (len(lines) - 1) * line_h + 120 + box_padding_y)
+    
+    overlay = Image.new('RGBA', img.size, (255, 255, 255, 0))
+    d = ImageDraw.Draw(overlay)
+    
+    # Fond noir semi-transparent (140/255 d'opacité)
+    d.rectangle([box_x1, box_y1, box_x2, box_y2], fill=(0, 0, 0, 140))
+    img = img.convert('RGBA')
+    img = Image.alpha_composite(img, overlay)
+    draw = ImageDraw.Draw(img)
+    
+    y = start_y
     for line in lines:
         line_w = draw.textlength(line, font=font)
         x = (img.width - line_w) // 2
@@ -103,6 +126,7 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         draw.text((x, y), line, font=font, fill=(255, 255, 255))
         y += line_h
     
+    img = img.convert('RGB')
     img.save(output_path, "JPEG", quality=95)
     return output_path
 

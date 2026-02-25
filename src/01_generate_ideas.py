@@ -56,61 +56,73 @@ Your JSON must be an object with a 'pins' array containing objects with the foll
 - keywords: 5-10 relevant keywords string, comma separated
 """
     
-    user_prompt = f"Génère {count} idées d'épingles Pinterest très attractives pour la niche : \"{niche}\". **IMPORTANT : Le contenu généré (titres, textes, descriptions, mots-clés) doit absolument être en ANGLAIS.** Ne retourne strictement QUE le JSON valide, sans aucune autre explication."
+    batch_size = 15
+    batches = [batch_size] * (count // batch_size)
+    if count % batch_size > 0:
+        batches.append(count % batch_size)
 
-    try:
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
-        
-        response = client.chat_completion(
-            model="deepseek-ai/DeepSeek-V3",
-            messages=messages,
-            max_tokens=4000
-        )
-        
-        reply_content = response.choices[0].message.content
-        data = extract_json(reply_content)
-        pins = data.get("pins", [])
-        
-        if not pins:
-            print("❌ Aucune idée générée ou format de réponse invalide.")
-            print("Réponse brute reçue :", reply_content)
-            return
+    output_file = DATA_DIR / "pins_ideas_to_fill.csv"
+    total_generated = 0
+    
+    for b_idx, b_count in enumerate(batches):
+        print(f"\n🔄 Lot {b_idx+1}/{len(batches)} : Génération de {b_count} idées...")
+        user_prompt = f"Génère {b_count} idées d'épingles Pinterest très attractives pour la niche : \"{niche}\". **IMPORTANT : Le contenu généré (titres, textes, descriptions, mots-clés) doit absolument être en ANGLAIS.** Ne retourne strictement QUE le JSON valide, sans aucune autre explication."
+
+        try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
             
-        output_file = DATA_DIR / "pins_ideas_to_fill.csv"
-        file_exists = os.path.isfile(output_file)
-        
-        with open(output_file, 'a', encoding='utf-8', newline='') as f:
-            # Reordered fieldnames as requested
-            fieldnames = ["search_link_amazon", "amazon_product_url", "slug", "title", "overlay_text", "description", "niche", "keywords"]
-            writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-            if not file_exists:
-                writer.writeheader()
+            response = client.chat_completion(
+                model="deepseek-ai/DeepSeek-V3",
+                messages=messages,
+                max_tokens=4000
+            )
             
-            for pin in pins:
-                search_query = pin.get("title", "")
-                encoded_query = urllib.parse.quote_plus(search_query)
-                search_link = f"https://www.amazon.fr/s?k={encoded_query}"
+            reply_content = response.choices[0].message.content
+            data = extract_json(reply_content)
+            pins = data.get("pins", [])
+            
+            if not pins:
+                print("❌ Aucune idée générée ou format de réponse invalide pour ce lot.")
+                print("Réponse brute reçue (tronquée) :", reply_content[:500], "...")
+                continue
                 
-                row = {
-                    "search_link_amazon": search_link,
-                    "amazon_product_url": "", # Empty for manual fill
-                    "slug": pin.get("slug", ""),
-                    "title": pin.get("title", ""),
-                    "overlay_text": pin.get("overlay_text", ""),
-                    "description": pin.get("description", ""),
-                    "niche": pin.get("niche", ""),
-                    "keywords": pin.get("keywords", "")
-                }
-                writer.writerow(row)
+            file_exists = os.path.isfile(output_file)
+            
+            with open(output_file, 'a', encoding='utf-8', newline='') as f:
+                # Reordered fieldnames as requested
+                fieldnames = ["search_link_amazon", "amazon_product_url", "slug", "title", "overlay_text", "description", "niche", "keywords"]
+                writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+                if not file_exists:
+                    writer.writeheader()
                 
-        print("\n✅ GÉNÉRATION TERMINÉE ! 🎉")
-        print(f"📁 Fichier mis à jour avec {len(pins)} nouvelles lignes : {output_file}")
-        
-    except Exception as e:
-        print(f"\n❌ Erreur API : {e}")
+                for pin in pins:
+                    search_query = pin.get("title", "")
+                    encoded_query = urllib.parse.quote_plus(search_query)
+                    search_link = f"https://www.amazon.fr/s?k={encoded_query}"
+                    
+                    row = {
+                        "search_link_amazon": search_link,
+                        "amazon_product_url": "", # Empty for manual fill
+                        "slug": pin.get("slug", ""),
+                        "title": pin.get("title", ""),
+                        "overlay_text": pin.get("overlay_text", ""),
+                        "description": pin.get("description", ""),
+                        "niche": pin.get("niche", ""),
+                        "keywords": pin.get("keywords", "")
+                    }
+                    writer.writerow(row)
+            
+            total_generated += len(pins)
+            print(f"✅ {len(pins)} idées enregistrées pour ce lot.")
+                    
+        except Exception as e:
+            print(f"\n❌ Erreur API sur ce lot : {e}")
+
+    print("\n✅ GÉNÉRATION TERMINÉE ! 🎉")
+    print(f"📁 Fichier mis à jour avec un total de {total_generated} nouvelles lignes : {output_file}")
 
 if __name__ == "__main__":
     generate_ideas()

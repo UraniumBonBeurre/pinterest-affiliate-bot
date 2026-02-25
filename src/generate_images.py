@@ -37,7 +37,8 @@ def generate_image_hf(prompt: str) -> Image.Image:
     }
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload)
+        # Add explicit timeout so it doesn't hang forever if HF is stuck
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
         
         # Check if model is still loading (commonly returns 503)
         if response.status_code == 503:
@@ -64,13 +65,18 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     img = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(img)
     
-    # Police (utilise une police système ou télécharge "Montserrat-Bold.ttf" dans ton repo)
+    # Téléchargement d'une police plus stylisée et moins "impactante" (Montserrat Medium)
+    font_dir = BASE_DIR / "assets" / "fonts"
+    font_dir.mkdir(parents=True, exist_ok=True)
+    font_path = font_dir / "Montserrat-Medium.ttf"
+
     try:
-        font_path = BASE_DIR / "assets" / "fonts" / "Anton-Regular.ttf"
-        font = ImageFont.truetype(str(font_path), 120)
+        font_size = 110
+        font = ImageFont.truetype(str(font_path), font_size)
     except:
         try:
-           font = ImageFont.truetype("arialbd.ttf", 120)
+           font_size = 110
+           font = ImageFont.truetype("arial.ttf", font_size)
         except:
            font = ImageFont.load_default()
     
@@ -81,46 +87,33 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     for word in words:
         current_line.append(word)
         line_w = draw.textlength(" ".join(current_line), font=font)
-        if line_w > img.width - 100:
+        if line_w > img.width - 140:
             current_line.pop()
             lines.append(" ".join(current_line))
             current_line = [word]
     if current_line:
         lines.append(" ".join(current_line))
         
-    line_h = 130 # approximate line height
+    line_h = int(font_size * 1.5) # Espacement interligne beaucoup plus large
     total_h = len(lines) * line_h
     
     # Centrage vertical
-    start_y = (img.height - total_h) // 2
-    
-    # Dessiner un fond semi-transparent pour la lisibilité
-    max_line_w = max(draw.textlength(line, font=font) for line in lines) if lines else 0
-    box_padding_x = 60
-    box_padding_y = 60
-    
-    box_x1 = max(0, (img.width - max_line_w) // 2 - box_padding_x)
-    box_y1 = max(0, start_y - box_padding_y)
-    box_x2 = min(img.width, (img.width + max_line_w) // 2 + box_padding_x)
-    box_y2 = min(img.height, start_y + (len(lines) - 1) * line_h + 120 + box_padding_y)
-    
-    overlay = Image.new('RGBA', img.size, (255, 255, 255, 0))
-    d = ImageDraw.Draw(overlay)
-    
-    # Fond noir semi-transparent (140/255 d'opacité)
-    d.rectangle([box_x1, box_y1, box_x2, box_y2], fill=(0, 0, 0, 140))
-    img = img.convert('RGBA')
-    img = Image.alpha_composite(img, overlay)
-    draw = ImageDraw.Draw(img)
+    start_y = max(0, (img.height - total_h) // 2)
     
     y = start_y
     for line in lines:
         line_w = draw.textlength(line, font=font)
         x = (img.width - line_w) // 2
         
-        # Ombre noire douce (2 passes pour effet pro)
-        draw.text((x+4, y+4), line, font=font, fill=(0, 0, 0, 180))
-        draw.text((x+2, y+2), line, font=font, fill=(0, 0, 0, 220))
+        # Création d'un bon contour (stroke) pour faire ressortir les lettres sans fond opaque
+        stroke_width = 4
+        for dx in range(-stroke_width, stroke_width + 1, 2):
+            for dy in range(-stroke_width, stroke_width + 1, 2):
+                if dx != 0 or dy != 0:
+                    draw.text((x + dx, y + dy), line, font=font, fill=(0, 0, 0, 200))
+                    
+        # Ombre portée douce en bas à droite pour la profondeur
+        draw.text((x + 8, y + 8), line, font=font, fill=(0, 0, 0, 150))
         
         # Texte blanc principal
         draw.text((x, y), line, font=font, fill=(255, 255, 255))

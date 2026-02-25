@@ -3,7 +3,7 @@ name: Daily Pinterest Autopilot
 on:
   schedule:
     # Run every 3 hours (8 times a day)
-    - cron: '0 */3 * * *'
+    # - cron: '0 */3 * * *'
   workflow_dispatch:
     inputs:
       pins_count:

@@ -69,7 +69,7 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     draw = ImageDraw.Draw(img)
     
     # On cherche dynamiquement la taille de police idéale (très grande pour le cursif)
-    font_path = BASE_DIR / "assets" / "fonts" / "Caveat-Bold.ttf"
+    font_path = BASE_DIR / "assets" / "fonts" / "Kalam-Bold.ttf"
     
     max_font_size = 350
     min_font_size = 150
@@ -85,10 +85,12 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     while font_size >= min_font_size:
         try:
             font = ImageFont.truetype(str(font_path), font_size)
-        except:
+        except Exception as e:
+            print(f"🚨 WARNING: Failed to load font {font_path} (Error: {e})")
             try:
                 font = ImageFont.truetype("arialbd.ttf", font_size)
             except:
+                print("🚨 CRITICAL WARNING: Falling back to 10px binary default font! Text will be unreadable.")
                 font = ImageFont.load_default()
                 
         # Tentative de wrap avec cette taille
@@ -153,7 +155,7 @@ def generate_interior_image(subject: str, image_path: str, overlay_text: str = N
     Used by the autopilot workflow.
     """
     prompt = f"""
-    Photorealistic vertical Pinterest image 1000x1500, modern minimalist home interior 2026, soft natural daylight from large window, realistic textures wood linen concrete plants, cozy neutral colors beige white sage green warm wood tones, clean aesthetic composition, highly detailed 8K, professional interior photography style, no people, no text, no watermark, no artifacts, sharp focus, highly pinnable
+    Photorealistic vertical Pinterest image 1000x1500, {subject}, modern minimalist home interior 2026, soft natural daylight from large window, realistic textures wood linen concrete plants, cozy neutral colors beige white sage green warm wood tones, clean aesthetic composition, highly detailed 8K, professional interior photography style, no people, no text, no watermark, no artifacts, sharp focus, highly pinnable
     """
     
     base_img = generate_image_hf(prompt)

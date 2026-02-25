@@ -32,18 +32,25 @@ def generate_ideas():
         print("❌ Erreur: GEMINI_API_KEY n'est pas configurée dans le fichier .env")
         return
 
-    niche = input("👉 Quelle est ta niche ou le thème pour ces 10 produits ? (ex: 'décoration bureau télétravail')\n> ")
+    niche = input("👉 Quelle est ta niche ou le thème pour ces produits ? (ex: 'décoration bureau télétravail')\n> ")
     if not niche.strip():
-        niche = "décoration d'intérieur astucieuse et pas chère"
+        niche = "décoration d'intérieur astucieuse"
         print(f"Aucune niche saisie. Utilisation par défaut : '{niche}'")
 
-    print(f"\n⏳ Génération de 10 idées pour la niche '{niche}' en cours via Gemini...")
+    count_str = input("👉 Combien d'idées veux-tu générer ? (Défaut: 5)\n> ")
+    try:
+        count = int(count_str.strip()) if count_str.strip() else 5
+    except ValueError:
+        count = 5
+        print("Entrée invalide. Utilisation de 5 par défaut.")
+
+    print(f"\n⏳ Génération de {count} idées pour la niche '{niche}' en cours via Gemini...")
     
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt = f"""
     Agis comme un expert Pinterest et affilié Amazon.
-    Génère 10 idées d'épingles Pinterest très attractives pour la niche : "{niche}".
+    Génère {count} idées d'épingles Pinterest très attractives pour la niche : "{niche}".
     Chaque épingle fera la promotion d'un produit physique spécifique qu'on peut trouver sur Amazon.
     
     Pour chaque épingle, fournis :

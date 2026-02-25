@@ -7,56 +7,64 @@ import base64
 import pandas as pd
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
-from tenacity import retry, wait_fixed, stop_after_attempt, retry_if_exception_type
-from together import Together
-from config import TOGETHER_API_KEY, DATA_DIR, IMAGES_DIR, BASE_DIR
-from utils import now_ts
-
-# Max 10000x10000 images is supported by PIL
-Image.MAX_IMAGE_PIXELS = None
+import requests
+import time
+from config import HF_TOKEN, DATA_DIR, IMAGES_DIR, BASE_DIR
 
 class GenerationError(Exception):
     pass
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(5), retry=retry_if_exception_type(GenerationError))
-def generate_image_together(prompt: str) -> Image.Image:
+@retry(stop=stop_after_attempt(5), wait=wait_fixed(15), retry=retry_if_exception_type(GenerationError))
+def generate_image_hf(prompt: str) -> Image.Image:
     """
-    Generate an image using Together AI's Flux model (black-forest-labs/FLUX.1-schnell-Free).
-    It usually supports 1024x1024 or 768x1024. We'll request 768x1024.
+    Generate an image using Hugging Face Inference API (Flux.1-schnell).
     """
-    if not TOGETHER_API_KEY:
-        raise GenerationError("TOGETHER_API_KEY is not set in .env")
+    if not HF_TOKEN:
+        raise GenerationError("HF_TOKEN is not set in .env")
         
-    client = Together(api_key=TOGETHER_API_KEY)
+    API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    
+    # Exact user specified prompt architecture
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "negative_prompt": "cartoon, anime, illustration, painting, blurry, low quality, deformed, ugly, extra objects, text, watermark, people, faces, animals, fantasy, overexposed, underexposed",
+            "width": 1000,
+            "height": 1500
+        }
+    }
     
     try:
-        response = client.images.generate(
-            prompt=prompt,
-            model="black-forest-labs/FLUX.1-schnell-Free",
-            width=768,
-            height=1024,
-            steps=4,
-            n=1,
-            response_format="b64_json"
-        )
+        response = requests.post(API_URL, headers=headers, json=payload)
         
-        b64_data = response.data[0].b64_json
-        image_bytes = base64.b64decode(b64_data)
-        image = Image.open(BytesIO(image_bytes))
+        # Check if model is still loading (commonly returns 503)
+        if response.status_code == 503:
+            raise GenerationError(f"Model is loading, retrying... {response.json()}")
+            
+        if response.status_code != 200:
+            raise GenerationError(f"HF API Error {response.status_code}: {response.text}")
+            
+        image = Image.open(BytesIO(response.content))
         return image.convert("RGB")
     except Exception as e:
-        raise GenerationError(f"Together API Error: {e}")
+        if isinstance(e, GenerationError):
+            raise
+        raise GenerationError(f"HF Request Error: {e}")
 
-def generate_interior_image(prompt: str, image_path: str, overlay_text: str = None) -> str:
+def generate_interior_image(subject: str, image_path: str, overlay_text: str = None) -> str:
     """
-    Generates a single image via Together, applies overlay, and saves it.
+    Generates a single image via HF, applies overlay, and saves it.
     Used by the autopilot workflow.
     """
-    base_img = generate_image_together(prompt)
+    # Use exact prompt requested by user, injecting the specific subject
+    prompt = f"Photorealistic vertical Pinterest image 1000x1500px, modern minimalist home interior 2026, soft natural daylight from large window, realistic textures (wood, linen, concrete, plants), cozy neutral colors (beige, white, sage green, warm wood), clean aesthetic composition, highly detailed 8K, professional interior photography style, no people, no text, no watermark, no artifacts, no distortion, sharp focus. Subject: {subject}"
+    
+    base_img = generate_image_hf(prompt)
     if overlay_text:
         final_img = add_text_overlay(base_img, str(overlay_text))
     else:
-        # Resize to expected Pinterest 2:3 ratio
+        # Resize to expected Pinterest 2:3 ratio (If HF couldn't honor it exactly)
         final_img = base_img.resize((1000, 1500), Image.Resampling.LANCZOS)
         
     final_img.save(image_path, "JPEG", quality=90)

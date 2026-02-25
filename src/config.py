@@ -16,8 +16,8 @@ LOGS_DIR = OUTPUT_DIR / "logs"
 for directory in [DATA_DIR, IMAGES_DIR, LOGS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
-# Together API Settings
-TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+# Hugging Face Settings
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 # Pinterest Settings
 PINTEREST_ACCESS_TOKEN = os.getenv("PINTEREST_ACCESS_TOKEN")
@@ -29,6 +29,7 @@ AMAZON_ASSOCIATE_TAG = os.getenv("AMAZON_ASSOCIATE_TAG", "")
 DEFAULT_NICHE = os.getenv("DEFAULT_NICHE", "general")
 DEFAULT_LANG = os.getenv("DEFAULT_LANG", "fr")
 PUBLISH_DRY_RUN = os.getenv("PUBLISH_DRY_RUN", "true").lower() in ["true", "1", "yes"]
+PINS_PER_DAY = int(os.getenv("PINS_PER_DAY", "5"))
 
 # Cloudflare R2 Settings
 R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")

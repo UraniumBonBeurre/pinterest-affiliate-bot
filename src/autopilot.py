@@ -4,7 +4,6 @@ import logging
 import pandas as pd
 from config import PINS_PER_DAY, IMAGES_DIR, DATA_DIR
 from generate_images import generate_interior_image
-from prompts import POSITIVE_PROMPT
 from publish_pins import publish_single_pin
 
 # Add GH Actions output format
@@ -67,8 +66,7 @@ def main():
         try:
             # 3. Generate Image
             image_path = str(IMAGES_DIR / f"autopilot_{asin}.jpg")
-            prompt = POSITIVE_PROMPT.format(subject=title)
-            generate_interior_image(prompt, image_path, None)
+            generate_interior_image(title, image_path, None)
             
             # 4. Publish
             # Using the specific title and asin mapping to generate link internal to publish_single_pin

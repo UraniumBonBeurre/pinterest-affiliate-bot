@@ -39,7 +39,7 @@ jobs:
         id: autopilot
         env:
           PINS_PER_DAY: 5
-          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           PINTEREST_ACCESS_TOKEN: ${{ secrets.PINTEREST_ACCESS_TOKEN }}
           PINTEREST_BOARD_ID: ${{ secrets.PINTEREST_BOARD_ID }}
           AMAZON_ASSOCIATE_TAG: ${{ secrets.AMAZON_ASSOCIATE_TAG }}

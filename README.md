@@ -79,11 +79,11 @@ Ce repository est configuré pour tourner sous **GitHub Actions** 100% en autono
 
 **Fonctionnement :**
 - Tous les jours, un cron (avec un délai aléatoire pour simuler un humain) exécute `src/autopilot.py`.
-- Le script pioche `PINS_PER_DAY` (ex: 5) ASINs non utilisés dans `data/asin_pool.json`.
+- Le script pioche `PINS_PER_DAY` (ex: 5) ASINs prêts à l'emploi (ayant un ASIN valide) dans le fichier `data/pins_ideas_to_fill.csv`.
 - Il génère des images hyper réalistes avec **Together AI (FLUX.1-schnell)**.
 - Il publie l'épingle via l'API Pinterest avec votre lien affilié (via Cloudinary).
-- Il met à jour le fichier JSON pour marquer les ASIN comme utilisés.
-- Si la réserve tombe sous les 50 ASIN restants, le Action GitHub crée une **Issue** pour vous avertir par email !
+- Il met à jour le fichier CSV en **supprimant** les lignes venant d'être publiées.
+- Si le nombre de produits restants dans le CSV tombe sous 50, une **Issue GitHub** est créée pour vous alerter.
 
 **Configuration GitHub Requise :**
 Ajoutez ces variables dans les **Settings > Secrets & Variables > Actions** de votre dépôt GitHub :
@@ -92,5 +92,14 @@ Ajoutez ces variables dans les **Settings > Secrets & Variables > Actions** de v
 - `PINTEREST_ACCESS_TOKEN`, `PINTEREST_BOARD_ID`
 - `AMAZON_ASSOCIATE_TAG` (ex: `afprod-21`)
 
-**Faire le plein d'ASIN (Mensuel) :**
-Éditez le fichier `data/asin_pool.json`, ajoutez vos 200 à 300 nouveaux objets au format JSON standard (clef `"used": false`), et commitez la modification. Le robot continuera seul.
+**Faire le plein d'ASIN (Ravitaillement Régulier) :**
+Lorsque l'Action GitHub vous prévient que la réserve est presque vide :
+1. Sur votre ordinateur (en local), lancez `python src/01_generate_ideas.py`.
+2. L'IA va générer de nouvelles idées dans le fichier `data/pins_ideas_to_fill.csv`.
+3. Ouvrez ce fichier, cliquez sur la colonne `search_link_amazon` pour trouver les produits.
+4. Coupez/Collez les ASIN 10-caractères dans la colonne `asin` correspondante.
+5. Une fois que vous en avez rempli suffisamment, lancez :
+   ```bash
+   python src/push_ideas_to_git.py
+   ```
+   Ce script se charge de pousser automatiquement les nouvelles idées au robot sur GitHub ! L'autopilot utilisera ces nouvelles entrées lors de son exécution le lendemain.

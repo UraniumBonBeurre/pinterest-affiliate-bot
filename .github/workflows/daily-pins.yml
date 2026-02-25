@@ -50,8 +50,8 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/asin_pool.json
-          git commit -m "Auto-update ASIN pool (marked used)" || echo "No changes to commit"
+          git add data/pins_ideas_to_fill.csv
+          git commit -m "Auto-update ASIN pool (deleted used rows)" || echo "No changes to commit"
           git push
           
       - name: Create Low Pool Issue
@@ -61,4 +61,4 @@ jobs:
         run: |
           gh issue create \
             --title "URGENT : Réserve ASIN déco presque vide (< 50)" \
-            --body "Le script Autopilot a détecté qu'il restait moins de 50 ASINs non utilisés dans data/asin_pool.json. Préparez un nouveau PR avec 200/300 nouveaux produits pour éviter une rupture !"
+            --body "Le script Autopilot a détecté qu'il restait moins de 50 ASINs non utilisés dans data/pins_ideas_to_fill.csv. Relancez la génération locale pour refaire le plein de produits !"

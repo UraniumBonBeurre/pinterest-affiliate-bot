@@ -66,17 +66,24 @@ def generate_ideas():
         
         output_file = DATA_DIR / "pins_ideas_to_fill.csv"
         
+        import urllib.parse
         with open(output_file, 'w', encoding='utf-8', newline='') as f:
-            fieldnames = ["slug", "title", "overlay_text", "description", "asin", "niche", "keywords"]
+            fieldnames = ["slug", "title", "overlay_text", "description", "search_link_amazon", "asin", "niche", "keywords"]
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             
             for pin in pins:
+                # Créer un lien de recherche Amazon pertinent basé sur le titre généré
+                search_query = pin["title"]
+                encoded_query = urllib.parse.quote_plus(search_query)
+                search_link = f"https://www.amazon.fr/s?k={encoded_query}"
+                
                 row = {
                     "slug": pin["slug"],
                     "title": pin["title"],
                     "overlay_text": pin["overlay_text"],
                     "description": pin["description"],
+                    "search_link_amazon": search_link,
                     "asin": "", # Colonne vide à remplir par l'utilisateur
                     "niche": pin["niche"],
                     "keywords": pin["keywords"]
@@ -85,11 +92,12 @@ def generate_ideas():
                 
         print("\n✅ GÉNÉRATION TERMINÉE ! 🎉")
         print(f"📁 Fichier créé : {output_file}")
-        print("\n📝 PROCHAINE ÉTAPE :")
+        print("\n📝 PROCHAINE ÉTAPE (Manuel) :")
         print("1. Ouvre le fichier 'data/pins_ideas_to_fill.csv'")
-        print("2. Cherche chaque produit sur Amazon")
-        print("3. Copie l'ASIN (10 caractères, ex: B0CXYZ1234) dans la colonne 'asin'")
-        print("4. Lance ensuite : python src/02_enrich_links.py")
+        print("2. Clique sur les liens dans la colonne 'search_link_amazon' pour ouvrir ton navigateur")
+        print("3. Trouve un produit pertinent et copie uniquement son 'ASIN' (10 caractères, ex: B0CXYZ1234)")
+        print("4. Colle cet ASIN dans la colonne 'asin' du fichier CSV pour chaque ligne que tu valides.")
+        print("5. Lance ensuite le script python src/push_ideas_to_git.py pour envoyer ton travail sur Github !")
         
     except Exception as e:
         print(f"\n❌ Erreur lors de l'appel à Gemini : {e}")

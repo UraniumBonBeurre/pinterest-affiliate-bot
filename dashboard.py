@@ -36,13 +36,9 @@ col2.metric("Pins Prêts/Publiés", f"{pub_count} ✅")
 
 # Keys status
 hf_key = bool(os.getenv("HF_TOKEN"))
-together_key = bool(os.getenv("TOGETHER_API_KEY"))
 
-status_text = f"HF: {'✅' if hf_key else '❌'} | Together: {'✅' if together_key else '❌'}"
+status_text = f"HF: {'✅' if hf_key else '❌'}"
 col3.metric("Clés API Détectées", status_text)
-
-if not together_key:
-    st.warning("⚠️ La clé `TOGETHER_API_KEY` est manquante dans votre fichier `.env`. Le bot utilisera Hugging Face par défaut, ce qui peut épuiser rapidement votre quota gratuit.")
 
 st.markdown("---")
 

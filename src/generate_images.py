@@ -130,16 +130,16 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         x = (img.width - line_w) // 2
         
         # Contour léger (stroke) pour lisibilité sans casser les liaisons
-        stroke_color = (0, 0, 0, 160)
-        stroke_w = 4
+        stroke_color = (0, 0, 0, 180) # Légèrement plus opaque
+        stroke_w = 6 # Épaisseur augmentée
         for dx in range(-stroke_w, stroke_w + 1, 2):
             for dy in range(-stroke_w, stroke_w + 1, 2):
                 if dx != 0 or dy != 0:
                     draw.text((x + dx, y + dy), line, font=font, fill=stroke_color)
                         
         # Ombre portée de profondeur
-        shadow = (0, 0, 0, 220)
-        draw.text((x+6, y+6), line, font=font, fill=shadow)
+        shadow = (0, 0, 0, 240)
+        draw.text((x+8, y+8), line, font=font, fill=shadow)
 
         # Texte au premier plan (dessiné d'un seul bloc pour garder l'effet cursif lié intact)
         draw.text((x, y), line, font=font, fill=(255, 255, 255))
@@ -149,17 +149,65 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     img.save(output_path, "JPEG", quality=98, optimize=True)
     return output_path
 
+# Configuration Together AI
+TOGETHER_API_URL = "https://api.together.xyz/v1/images/generations"
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(10), retry=retry_if_exception_type(GenerationError))
+def generate_image_together(prompt: str) -> Image.Image:
+    from config import TOGETHER_API_KEY
+    if not TOGETHER_API_KEY:
+        raise GenerationError("No Together API key found")
+        
+    headers = {
+        "Authorization": f"Bearer {TOGETHER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "black-forest-labs/FLUX.1-schnell-Free",
+        "prompt": prompt,
+        "width": 1024,
+        "height": 1024, # Together free tier limit
+        "steps": 4,
+        "n": 1,
+        "response_format": "url" # On recupère un URL qu'on va dl
+    }
+    
+    try:
+        response = requests.post(TOGETHER_API_URL, headers=headers, json=payload, timeout=60)
+        
+        if response.status_code != 200:
+            raise GenerationError(f"Together API Error: {response.text}")
+            
+        data = response.json()
+        image_url = data['data'][0]['url']
+        
+        # Télécharger l'image depuis l'url fourni
+        img_response = requests.get(image_url, timeout=30)
+        img_response.raise_for_status()
+        
+        image = Image.open(BytesIO(img_response.content))
+        return image.convert("RGB")
+        
+    except Exception as e:
+        raise GenerationError(f"Together Request Error: {e}")
+
 def generate_interior_image(subject: str, image_path: str, overlay_text: str = None) -> str:
     """
-    Generates a single image via HF, and adds Python PIL overlay.
+    Generates a single image via Together (fallback HF), and adds Python PIL overlay.
     Used by the autopilot workflow.
     """
     prompt = f"""
     Photorealistic vertical Pinterest image 1000x1500, {subject}, modern minimalist home interior 2026, soft natural daylight from large window, realistic textures wood linen concrete plants, cozy neutral colors beige white sage green warm wood tones, clean aesthetic composition, highly detailed 8K, professional interior photography style, no people, no text, no watermark, no artifacts, sharp focus, highly pinnable
     """
     
-    base_img = generate_image_hf(prompt)
-    # Resize to expected Pinterest 2:3 ratio (If HF couldn't honor it exactly)
+    try:
+        print("Tentative de génération avec Together AI...")
+        base_img = generate_image_together(prompt)
+    except Exception as e:
+        print(f"⚠️ Échec Together AI ({e}). Fallback sur Hugging Face...")
+        base_img = generate_image_hf(prompt)
+        
+    # Resize to expected Pinterest 2:3 ratio
     final_img = base_img.resize((1000, 1500), Image.Resampling.LANCZOS)
         
     final_img.save(image_path, "JPEG", quality=90)

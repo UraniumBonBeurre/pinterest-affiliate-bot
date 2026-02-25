@@ -16,12 +16,9 @@ LOGS_DIR = OUTPUT_DIR / "logs"
 for directory in [DATA_DIR, IMAGES_DIR, LOGS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
-# Hugging Face Settings
+# API Keys for Image Generation
 HF_TOKEN = os.getenv("HF_TOKEN")
-
-
-
-# Pinterest Settings
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")# Pinterest Settings
 PINTEREST_ACCESS_TOKEN = os.getenv("PINTEREST_ACCESS_TOKEN")
 PINTEREST_API_BASE = os.getenv("PINTEREST_API_BASE", "https://api-sandbox.pinterest.com/v5").rstrip('/')
 PINTEREST_BOARD_ID = os.getenv("PINTEREST_BOARD_ID")

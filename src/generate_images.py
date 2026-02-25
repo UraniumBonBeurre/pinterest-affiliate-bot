@@ -55,20 +55,64 @@ def generate_image_hf(prompt: str) -> Image.Image:
             raise
         raise GenerationError(f"HF Request Error: {e}")
 
+def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> str:
+    if output_path is None:
+        output_path = image_path.replace(".png", "_with_text.png")
+        if output_path == image_path:
+             output_path = image_path.replace(".jpg", "_with_text.jpg")
+    
+    img = Image.open(image_path).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    
+    # Police (utilise une police système ou télécharge "Montserrat-Bold.ttf" dans ton repo)
+    try:
+        font_path = BASE_DIR / "assets" / "fonts" / "Anton-Regular.ttf"
+        font = ImageFont.truetype(str(font_path), 120)
+    except:
+        try:
+           font = ImageFont.truetype("arialbd.ttf", 120)
+        except:
+           font = ImageFont.load_default()
+    
+    # Wrap text if it is too wide
+    words = str(texte).upper().split()
+    lines = []
+    current_line = []
+    for word in words:
+        current_line.append(word)
+        line_w = draw.textlength(" ".join(current_line), font=font)
+        if line_w > img.width - 100:
+            current_line.pop()
+            lines.append(" ".join(current_line))
+            current_line = [word]
+    if current_line:
+        lines.append(" ".join(current_line))
+        
+    line_h = 130 # approximate line height
+    
+    y = 80  # un peu en dessous du haut
+    for line in lines:
+        line_w = draw.textlength(line, font=font)
+        x = (img.width - line_w) // 2
+        
+        # Ombre noire douce (2 passes pour effet pro)
+        draw.text((x+4, y+4), line, font=font, fill=(0, 0, 0, 180))
+        draw.text((x+2, y+2), line, font=font, fill=(0, 0, 0, 220))
+        
+        # Texte blanc principal
+        draw.text((x, y), line, font=font, fill=(255, 255, 255))
+        y += line_h
+    
+    img.save(output_path, "JPEG", quality=95)
+    return output_path
+
 def generate_interior_image(subject: str, image_path: str, overlay_text: str = None) -> str:
     """
-    Generates a single image via HF, optionally relying on FLUX text generation, and saves it.
+    Generates a single image via HF, and adds Python PIL overlay.
     Used by the autopilot workflow.
     """
-    if overlay_text and overlay_text.strip() and str(overlay_text).lower() != "nan":
-        text_instruction = f'big bold text overlay in the upper third in modern sans-serif font (white with subtle black shadow, very readable, large size):\\n"{overlay_text}",'
-    else:
-        text_instruction = "no text, no watermark,"
-
     prompt = f"""
-    Photorealistic vertical Pinterest image 1000x1500, modern minimalist home interior 2026, soft natural daylight, realistic textures wood linen plants, cozy neutral palette beige white sage, clean aesthetic, subject: {subject},
-    {text_instruction}
-    professional interior photography, highly detailed 8K, no people, sharp focus, aesthetic highly pinnable
+    Photorealistic vertical Pinterest image 1000x1500, modern minimalist home interior 2026, soft natural daylight from large window, realistic textures wood linen concrete plants, cozy neutral colors beige white sage green warm wood tones, clean aesthetic composition, highly detailed 8K, professional interior photography style, no people, no text, no watermark, no artifacts, sharp focus, highly pinnable
     """
     
     base_img = generate_image_hf(prompt)
@@ -76,6 +120,10 @@ def generate_interior_image(subject: str, image_path: str, overlay_text: str = N
     final_img = base_img.resize((1000, 1500), Image.Resampling.LANCZOS)
         
     final_img.save(image_path, "JPEG", quality=90)
+    
+    if overlay_text and overlay_text.strip() and str(overlay_text).lower() != "nan":
+         add_text_overlay(image_path, overlay_text, image_path)
+         
     return image_path
 
 def process_batch():

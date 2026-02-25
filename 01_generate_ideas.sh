@@ -2,7 +2,7 @@
 # Script interactif pour générer des idées et les envoyer sur Github
 
 echo "🔄 Récupération de la dernière version du fichier (git pull)..."
-git pull --rebase
+git pull --autostash --rebase
 
 echo ""
 # Lancer le script Python de génération

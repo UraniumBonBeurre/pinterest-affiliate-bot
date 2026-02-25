@@ -85,7 +85,7 @@ Your JSON must be an object with a 'pins' array containing objects with the foll
         with open(output_file, 'a', encoding='utf-8', newline='') as f:
             # Reordered fieldnames as requested
             fieldnames = ["search_link_amazon", "amazon_product_url", "slug", "title", "overlay_text", "description", "niche", "keywords"]
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
             if not file_exists:
                 writer.writeheader()
             

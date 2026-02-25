@@ -40,7 +40,6 @@ def main():
             return
             
     for idx, row in df.iterrows():
-        slug = str(row.get("slug", f"test_{idx}")).strip()
         title = str(row.get("title", "")).strip()
         overlay = str(row.get("overlay_text", "")).strip()
         
@@ -49,7 +48,9 @@ def main():
             continue
             
         print(f"[{idx+1}/{len(df)}] Overlay pour : {title[:40]}...")
-        output_path = str(output_dir / f"{slug}.jpg")
+        # Nom de fichier garanti unique basé sur l'index
+        output_filename = f"pin_test_{idx:03d}.jpg"
+        output_path = str(output_dir / output_filename)
         
         if os.path.exists(output_path):
             print(f"  -> Image déjà existante (ignorée).")
@@ -57,7 +58,7 @@ def main():
             
         try:
             # On copie l'image de base pour travailler dessus
-            temp_copy = str(output_dir / f"temp_{slug}.jpg")
+            temp_copy = str(output_dir / f"temp_{output_filename}")
             shutil.copy2(base_image_path, temp_copy)
             
             # On ajoute le texte

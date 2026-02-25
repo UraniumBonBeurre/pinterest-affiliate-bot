@@ -68,84 +68,91 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     img = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(img)
     
-    # On cherche dynamiquement la taille de police idéale (très grande pour le cursif)
-    font_path = BASE_DIR / "assets" / "fonts" / "Kalam-Bold.ttf"
-    
-    max_font_size = 350
-    min_font_size = 150
-    margin = 120 # Marge totale (gauche + droite)
-    max_width = img.width - margin
-    
-    font_size = max_font_size
-    font = None
-    lines = []
-    
-    # Wrap text and dynamically reduce font size if even the longest word doesn't fit
-    words = str(texte).split()
-    while font_size >= min_font_size:
+    font_size = 115
+    try:
+        font_path = BASE_DIR / "assets" / "fonts" / "Montserrat-Bold.ttf"
+        font = ImageFont.truetype(str(font_path), font_size)
+    except:
         try:
-            font = ImageFont.truetype(str(font_path), font_size)
-        except Exception as e:
-            print(f"🚨 WARNING: Failed to load font {font_path} (Error: {e})")
-            try:
-                font = ImageFont.truetype("arialbd.ttf", font_size)
-            except:
-                print("🚨 CRITICAL WARNING: Falling back to 10px binary default font! Text will be unreadable.")
-                font = ImageFont.load_default()
-                
-        # Tentative de wrap avec cette taille
-        lines = []
-        current_line = []
-        word_too_long = False
+           font = ImageFont.truetype("arialbd.ttf", font_size)
+        except:
+           font = ImageFont.load_default()
+    
+    # Wrap text
+    words = str(texte).upper().split()
+    lines = []
+    current_line = []
+    
+    margin = 80
+    max_width = img.width - (margin * 2)
+    
+    for word in words:
+        current_line.append(word)
+        line_w = draw.textlength(" ".join(current_line), font=font)
+        if line_w > max_width:
+            current_line.pop()
+            if current_line:
+                lines.append(" ".join(current_line))
+            current_line = [word]
+    if current_line:
+        lines.append(" ".join(current_line))
         
-        for word in words:
-            if draw.textlength(word, font=font) > max_width:
-                word_too_long = True
-                break
-                
-            current_line.append(word)
-            line_w = draw.textlength(" ".join(current_line), font=font)
-            if line_w > max_width:
-                current_line.pop()
-                if current_line:
-                    lines.append(" ".join(current_line))
-                current_line = [word]
-                
-        if word_too_long:
-            font_size -= 20
-            continue
-            
-        if current_line:
-            lines.append(" ".join(current_line))
-            
-        break # Si on arrive ici, le wrap a fonctionné avec cette taille
-        
-    line_h = int(font_size * 1.1)
+    line_h = int(font_size * 1.15) # Espacement recommandé 1.1 - 1.2
     total_h = len(lines) * line_h
     
-    y = max(0, (img.height - total_h) // 2) - 50 # Centrage + léger ajustement optique
+    # Position dynamique (haut, centre, bas) aléatoire pondérée
+    import random
+    pos_choice = random.choices(['center', 'top', 'bottom'], weights=[60, 20, 20])[0]
+    
+    if pos_choice == 'top':
+        start_y = 100
+    elif pos_choice == 'bottom':
+        start_y = img.height - total_h - 150
+    else: # center
+        start_y = (img.height - total_h) // 2
+        
+    # Couche pour l'ombre floutée
+    shadow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadow_layer)
+    
+    y = start_y
+    for line in lines:
+        line_w = draw.textlength(line, font=font)
+        x = (img.width - line_w) // 2
+        
+        # Dessin de l'ombre portée noire opaque sur le calque transparent
+        shadow_draw.text((x + 5, y + 5), line, font=font, fill=(0, 0, 0, 200))
+        y += line_h
+        
+    # Appliquer le Gaussian Blur à l'ombre
+    from PIL import ImageFilter
+    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=4))
+    
+    # Fusionner l'ombre avec l'image principale
+    img = Image.alpha_composite(img.convert("RGBA"), shadow_layer)
+    draw = ImageDraw.Draw(img) # Nouveau draw sur l'image fusionnée
+    
+    # Dessin du texte final et de son fin contour
+    y = start_y
+    textColor = "#FFF8F0" # Blanc chaud
+    strokeColor = (0, 0, 0, 160)
     
     for line in lines:
         line_w = draw.textlength(line, font=font)
         x = (img.width - line_w) // 2
         
-        # Contour léger (stroke) pour lisibilité sans casser les liaisons
-        stroke_color = (0, 0, 0, 180) # Légèrement plus opaque
-        stroke_w = 6 # Épaisseur augmentée
+        # Contour fin (stroke)
+        stroke_w = 2
         for dx in range(-stroke_w, stroke_w + 1, 2):
             for dy in range(-stroke_w, stroke_w + 1, 2):
                 if dx != 0 or dy != 0:
-                    draw.text((x + dx, y + dy), line, font=font, fill=stroke_color)
-                        
-        # Ombre portée de profondeur
-        shadow = (0, 0, 0, 240)
-        draw.text((x+8, y+8), line, font=font, fill=shadow)
-
-        # Texte au premier plan (dessiné d'un seul bloc pour garder l'effet cursif lié intact)
-        draw.text((x, y), line, font=font, fill=(255, 255, 255))
-        
+                    draw.text((x + dx, y + dy), line, font=font, fill=strokeColor)
+                    
+        # Texte principal
+        draw.text((x, y), line, font=font, fill=textColor)
         y += line_h
     
+    img = img.convert("RGB") # Repasser en RGB pour JPEG
     img.save(output_path, "JPEG", quality=98, optimize=True)
     return output_path
 

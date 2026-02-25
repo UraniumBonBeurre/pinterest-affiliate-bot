@@ -109,7 +109,7 @@ def publish_batch():
         status = row.get("publish_status")
         
         if status in ["published", "dry_run_ok"]:
-            print(f"[{now_ts()}] Skipping {row['slug']} (Status: {status})")
+            print(f"[{now_ts()}] Skipping '{row.get('title', f'Row {idx}')}' (Status: {status})")
             continue
             
         title = row.get("title", "")
@@ -118,11 +118,11 @@ def publish_batch():
         image_url = row.get("image_public_url", "")
         
         if pd.isna(image_url) or not str(image_url).startswith("http"):
-            print(f"[{now_ts()}] Missing or invalid image_public_url for {row['slug']}, skipping.")
+            print(f"[{now_ts()}] Missing or invalid image_public_url for '{title}', skipping.")
             df.at[idx, "publish_status"] = "error: no public image"
             continue
             
-        print(f"[{now_ts()}] Publishing {row['slug']}...")
+        print(f"[{now_ts()}] Publishing '{title}'...")
         
         try:
             if PUBLISH_DRY_RUN:

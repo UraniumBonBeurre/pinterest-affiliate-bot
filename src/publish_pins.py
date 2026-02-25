@@ -16,10 +16,12 @@ def upload_to_r2(local_image_path: str) -> str:
         
     endpoint_url = f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
     
+    from botocore.config import Config
     s3 = boto3.client('s3',
         endpoint_url=endpoint_url,
         aws_access_key_id=R2_ACCESS_KEY_ID,
         aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        config=Config(signature_version='s3v4'),
         region_name="auto"
     )
     

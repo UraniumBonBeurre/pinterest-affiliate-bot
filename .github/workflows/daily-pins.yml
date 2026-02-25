@@ -2,14 +2,14 @@ name: Daily Pinterest Autopilot
 
 on:
   schedule:
-    # Run every day at 12:00 UTC (We will use sleep to randomize the exact time)
-    - cron: '0 12 * * *'
+    # Run every 3 hours (8 times a day)
+    - cron: '0 */3 * * *'
   workflow_dispatch:
     inputs:
       pins_count:
-        description: 'Nombre de pins à publier'
+        description: 'Nombre de pins à publier (par exécution)'
         required: true
-        default: '5'
+        default: '1'
         type: string
       publish_to_pinterest:
         description: 'Publier sur Pinterest (Désactivé = génère et upload R2 uniquement)'
@@ -31,8 +31,9 @@ jobs:
       - name: Randomize Start Time
         if: github.event_name == 'schedule'
         run: |
-          # Sleep for a random amount of time between 0 and 6 hours (up to 360 minutes) to avoid exact cron patterns on Pinterest
-          DELAY=$((RANDOM % 21600))
+          # Sleep for a random amount of time between 0 and 2 hours (up to 7200 seconds) 
+          # to spread the execution within the 3-hour cron window.
+          DELAY=$((RANDOM % 7200))
           echo "Sleeping for $DELAY seconds to humanize execution time..."
           sleep $DELAY
 
@@ -49,7 +50,7 @@ jobs:
       - name: Run Autopilot Main Script
         id: autopilot
         env:
-          PINS_PER_DAY: ${{ github.event.inputs.pins_count || '5' }}
+          PINS_PER_DAY: ${{ github.event.inputs.pins_count || '1' }}
           PUBLISH_DRY_RUN: ${{ github.event.inputs.publish_to_pinterest == 'true' && 'false' || 'true' }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           PINTEREST_ACCESS_TOKEN: ${{ secrets.PINTEREST_ACCESS_TOKEN }}

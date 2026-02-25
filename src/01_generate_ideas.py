@@ -56,7 +56,7 @@ Your JSON must be an object with a 'pins' array containing objects with the foll
 - keywords: 5-10 relevant keywords string, comma separated
 """
     
-    user_prompt = f"Génère {count} idées d'épingles Pinterest très attractives pour la niche : \"{niche}\". Ne retourne strictement QUE le JSON valide, sans aucune autre explication."
+    user_prompt = f"Génère {count} idées d'épingles Pinterest très attractives pour la niche : \"{niche}\". **IMPORTANT : Le contenu généré (titres, textes, descriptions, mots-clés) doit absolument être en ANGLAIS.** Ne retourne strictement QUE le JSON valide, sans aucune autre explication."
 
     try:
         messages = [

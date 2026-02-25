@@ -57,105 +57,26 @@ def generate_image_hf(prompt: str) -> Image.Image:
 
 def generate_interior_image(subject: str, image_path: str, overlay_text: str = None) -> str:
     """
-    Generates a single image via HF, applies overlay, and saves it.
+    Generates a single image via HF, optionally relying on FLUX text generation, and saves it.
     Used by the autopilot workflow.
     """
-    # Use exact prompt requested by user, injecting the specific subject
-    prompt = f"Photorealistic vertical Pinterest image 1000x1500px, modern minimalist home interior 2026, soft natural daylight from large window, realistic textures (wood, linen, concrete, plants), cozy neutral colors (beige, white, sage green, warm wood), clean aesthetic composition, highly detailed 8K, professional interior photography style, no people, no text, no watermark, no artifacts, no distortion, sharp focus. Subject: {subject}"
+    if overlay_text and overlay_text.strip() and str(overlay_text).lower() != "nan":
+        text_instruction = f'big bold text overlay in the upper third in modern sans-serif font (white with subtle black shadow, very readable, large size):\\n"{overlay_text}",'
+    else:
+        text_instruction = "no text, no watermark,"
+
+    prompt = f"""
+    Photorealistic vertical Pinterest image 1000x1500, modern minimalist home interior 2026, soft natural daylight, realistic textures wood linen plants, cozy neutral palette beige white sage, clean aesthetic, subject: {subject},
+    {text_instruction}
+    professional interior photography, highly detailed 8K, no people, sharp focus, aesthetic highly pinnable
+    """
     
     base_img = generate_image_hf(prompt)
-    if overlay_text:
-        final_img = add_text_overlay(base_img, str(overlay_text))
-    else:
-        # Resize to expected Pinterest 2:3 ratio (If HF couldn't honor it exactly)
-        final_img = base_img.resize((1000, 1500), Image.Resampling.LANCZOS)
+    # Resize to expected Pinterest 2:3 ratio (If HF couldn't honor it exactly)
+    final_img = base_img.resize((1000, 1500), Image.Resampling.LANCZOS)
         
     final_img.save(image_path, "JPEG", quality=90)
     return image_path
-    
-def get_font(size: int) -> ImageFont.FreeTypeFont:
-    """Load our custom downloaded font (Anton-Regular)"""
-    font_path = BASE_DIR / "assets" / "fonts" / "Anton-Regular.ttf"
-    try:
-        return ImageFont.truetype(str(font_path), size)
-    except IOError:
-        print("Warning: Custom font not found. Using default.")
-        return ImageFont.load_default()
-
-def add_text_overlay(base_img: Image.Image, text: str) -> Image.Image:
-    """
-    Add a large, bold text overlay to the center of the image.
-    Resizes/crops image to target 1000x1500 exactly.
-    """
-    # 1. Resize/Crop to 1000x1500 (2:3 Pinterest Ratio)
-    w, h = base_img.size
-    target_ratio = 2 / 3
-    current_ratio = w / h
-    
-    if current_ratio > target_ratio:
-        # Too wide, crop width
-        new_w = int(h * target_ratio)
-        left = (w - new_w) // 2
-        base_img = base_img.crop((left, 0, left + new_w, h))
-    elif current_ratio < target_ratio:
-        # Too tall, crop height
-        new_h = int(w / target_ratio)
-        top = (h - new_h) // 2
-        base_img = base_img.crop((0, top, w, top + new_h))
-        
-    img = base_img.resize((1000, 1500), Image.Resampling.LANCZOS)
-    draw = ImageDraw.Draw(img)
-    
-    # 2. Add Text Overlay
-    font_size = 140
-    font = get_font(font_size)
-    
-    width, height = img.size
-    words = str(text).upper().split()
-    lines = []
-    current_line = []
-    
-    # Text Wrap
-    for word in words:
-        current_line.append(word)
-        line_w = draw.textlength(" ".join(current_line), font=font)
-        if line_w > width - 100:  # 50px padding on each side
-            current_line.pop()
-            lines.append(" ".join(current_line))
-            current_line = [word]
-    if current_line:
-        lines.append(" ".join(current_line))
-        
-    line_h = font_size + 10 # approximate line height
-    
-    # Draw Background Box for Readability
-    total_text_h = len(lines) * (line_h + 10)
-    box_y1 = height // 2 - (total_text_h // 2) - 60
-    box_y2 = height // 2 + (total_text_h // 2) + 60
-    
-    overlay = Image.new('RGBA', img.size, (255, 255, 255, 0))
-    d = ImageDraw.Draw(overlay)
-    # Give it a nice dark cinematic background band
-    d.rectangle([(0, box_y1), (width, box_y2)], fill=(0, 0, 0, 180))
-    
-    img = img.convert('RGBA')
-    img = Image.alpha_composite(img, overlay)
-    draw = ImageDraw.Draw(img)
-    
-    # Draw Text
-    y_text = box_y1 + 50
-    for line in lines:
-        line_w = draw.textlength(line, font=font)
-        x_text = (width - line_w) // 2
-        
-        # Draw nice drop shadow
-        draw.text((x_text + 6, y_text + 6), line, font=font, fill=(0, 0, 0, 255))
-        draw.text((x_text + 3, y_text + 3), line, font=font, fill=(0, 0, 0, 150))
-        # Draw main text, maybe a slight off-white/yellow for punch
-        draw.text((x_text, y_text), line, font=font, fill=(255, 248, 230, 255))
-        y_text += line_h + 10
-        
-    return img.convert('RGB')
 
 def process_batch():
     input_path = DATA_DIR / "pins_input.csv"

@@ -61,6 +61,7 @@ def main():
     for idx, row in chosen_df.iterrows():
         url = str(row.get("amazon_product_url")).strip()
         title = str(row.get("title")).strip()
+        overlay_text = str(row.get("overlay_text", "")).strip()
         
         # Extract ASIN using regex (looking for exactly 10 alphanumeric chars in the URL path)
         import re
@@ -77,7 +78,12 @@ def main():
         try:
             # 3. Generate Image
             image_path = str(IMAGES_DIR / f"autopilot_{asin}.jpg")
-            generate_interior_image(title, image_path, None)
+            
+            # Use original title as fallback if overlay_text is empty
+            if not overlay_text or overlay_text == "nan":
+                overlay_text = title
+                
+            generate_interior_image(title, image_path, overlay_text)
             
             # 4. Publish
             # Using the specific title and asin mapping to generate link internal to publish_single_pin

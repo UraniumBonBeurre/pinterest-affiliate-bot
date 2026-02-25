@@ -68,7 +68,7 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     img = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(img)
     
-    font_size = 160 # Taille augmentée pour police manuscrite
+    font_size = 280 # Taille massivement augmentée car la police manuscrite est fine
     try:
         font_path = BASE_DIR / "assets" / "fonts" / "Caveat-Bold.ttf"
         font = ImageFont.truetype(str(font_path), font_size)
@@ -83,7 +83,7 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     lines = []
     current_line = []
     
-    char_spacing = 8 # Espacement horizontal ajouté (tracking)
+    char_spacing = -5 # Correction : on réduit l'espacement pour les polices manuscrites afin que ça "s'attache" mieux
     
     for word in words:
         current_line.append(word)
@@ -92,30 +92,32 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         for char in joined_line:
             line_w += draw.textlength(char, font=font) + char_spacing
         
-        if line_w > img.width - 150: # Marges
+        if line_w > img.width - 80: # Marges réduites pour laisser de la place
             current_line.pop()
-            lines.append(" ".join(current_line))
+            if current_line:
+                lines.append(" ".join(current_line))
             current_line = [word]
     if current_line:
         lines.append(" ".join(current_line))
         
-    line_h = int(font_size * 1.5) # Interligne très aéré
+    line_h = int(font_size * 0.9) # Interligne réduit car il y a beaucoup de vide dans cette typo
     total_h = len(lines) * line_h
     
-    y = max(0, (img.height - total_h) // 2)
+    y = max(0, (img.height - total_h) // 2) - 40 # Léger décalage vers le haut pour centrage optique
     
     for line in lines:
         line_w = 0
         for char in line:
             line_w += draw.textlength(char, font=font) + char_spacing
-        line_w -= char_spacing # retirer l'espacement du dernier caractère
+        if len(line) > 0:
+            line_w -= char_spacing # retirer l'espacement du dernier caractère
         
         x = (img.width - line_w) // 2
         
         for char in line:
             cw = draw.textlength(char, font=font)
             
-            # Contour léger (stroke) pour lisibilité sans boîte
+            # Contour léger (stroke) pour lisibilité
             stroke_color = (0, 0, 0, 160)
             stroke_w = 3
             for dx in range(-stroke_w, stroke_w + 1, 2):
@@ -125,9 +127,7 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
                         
             # Ombre portée de profondeur
             shadow = (0, 0, 0, 220)
-            draw.text((x+6, y+6), char, font=font, fill=shadow)
-            draw.text((x+4, y+4), char, font=font, fill=shadow)
-            draw.text((x+2, y+2), char, font=font, fill=shadow)
+            draw.text((x+5, y+5), char, font=font, fill=shadow)
 
             # Texte au premier plan
             draw.text((x, y), char, font=font, fill=(255, 255, 255))

@@ -11,9 +11,9 @@ if [ ! -f "$WORKFLOW_FILE" ]; then
 fi
 
 if [ -z "$1" ]; then
-    echo "Usage: ./toggle_autopilot.sh [on|off]"
-    echo "  on  : Active la publication automatique (décommente le cron)"
-    echo "  off : Met en pause la publication automatique (commente le cron)"
+    echo "Usage: ./toggle_autopilot.sh [on <nombre_de_pins>|off]"
+    echo "  on <N> : Active la publication automatique pour N pins répartis sur la journée"
+    echo "  off    : Met en pause la publication automatique (commente le cron)"
     
     # Vérifier l'état actuel
     if grep -q "^    - cron:" "$WORKFLOW_FILE"; then
@@ -27,10 +27,29 @@ fi
 ACTION=$1
 
 if [ "$ACTION" == "on" ]; then
-    echo "Activation du cron..."
-    # Remplacer "# schedule:" par "  schedule:" et "# - cron:" par "- cron:"
+    if [ -z "$2" ]; then
+        echo "❌ Erreur: L'argument <nombre_de_pins> est obligatoire pour 'on'."
+        echo "Usage: ./toggle_autopilot.sh on <nombre>"
+        exit 1
+    fi
+    N=$2
+    if ! [[ "$N" =~ ^[0-9]+$ ]] || [ "$N" -lt 1 ] || [ "$N" -gt 24 ]; then
+        echo "❌ Erreur: Veuillez entrer un nombre entier entre 1 et 24."
+        exit 1
+    fi
+    
+    echo "Calcul des intervalles pour $N publication(s) par jour..."
+    # Génère N heures équitablement réparties sur 24h
+    HOURS=$(python3 -c "import sys; n=int(sys.argv[1]); print(','.join(str(int(i*24/n)) for i in range(n)))" "$N")
+    CRON="0 $HOURS * * *"
+    
+    echo "Activation du cron avec la règle : $CRON"
+    # Remplacer "# schedule:" par "  schedule:"
     sed -i '' 's/^#[[:space:]]*schedule:/  schedule:/g' "$WORKFLOW_FILE"
-    sed -i '' 's/^[[:space:]]*#[[:space:]]*- cron:/    - cron:/g' "$WORKFLOW_FILE"
+    
+    # Remplacer silencieusement l'ancien cron par le nouveau (commenté ou non)
+    sed -i '' "s/^[[:space:]]*#*[[:space:]]*- cron:.*/    - cron: '$CRON'/g" "$WORKFLOW_FILE"
+    
     echo "✅ Cron activé dans $WORKFLOW_FILE"
     
 elif [ "$ACTION" == "off" ]; then
@@ -44,6 +63,12 @@ else
     echo "❌ Action non reconnue : $ACTION"
     echo "Utilisez 'on' ou 'off'."
     exit 1
+fi
+
+# Vérifier si le fichier a été modifié
+if git diff --quiet "$WORKFLOW_FILE" && git diff --cached --quiet "$WORKFLOW_FILE"; then
+    echo "ℹ️  Aucune modification détectée. L'autopilot était déjà configuré sur l'état '$ACTION'."
+    exit 0
 fi
 
 # Push les changements

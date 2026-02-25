@@ -24,6 +24,10 @@ def generate_ideas():
     print("🤖 GÉNÉRATEUR D'IDÉES DE PINS AVEC GEMINI")
     print("==================================================\n")
     
+    import subprocess
+    print("🔄 Récupération de la dernière version du fichier (git pull)...")
+    subprocess.run(["git", "pull"], check=False)
+    
     if not GEMINI_API_KEY:
         print("❌ Erreur: GEMINI_API_KEY n'est pas configurée dans le fichier .env")
         return
@@ -65,12 +69,14 @@ def generate_ideas():
         pins = data.get("pins", [])
         
         output_file = DATA_DIR / "pins_ideas_to_fill.csv"
+        file_exists = os.path.isfile(output_file)
         
         import urllib.parse
-        with open(output_file, 'w', encoding='utf-8', newline='') as f:
+        with open(output_file, 'a', encoding='utf-8', newline='') as f:
             fieldnames = ["slug", "title", "overlay_text", "description", "search_link_amazon", "asin", "niche", "keywords"]
             writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
+            if not file_exists:
+                writer.writeheader()
             
             for pin in pins:
                 # Créer un lien de recherche Amazon pertinent basé sur le titre généré
@@ -91,13 +97,20 @@ def generate_ideas():
                 writer.writerow(row)
                 
         print("\n✅ GÉNÉRATION TERMINÉE ! 🎉")
-        print(f"📁 Fichier créé : {output_file}")
-        print("\n📝 PROCHAINE ÉTAPE (Manuel) :")
+        print(f"📁 Fichier mis à jour : {output_file}")
+        print("\n📝 ÉTAPE MANUELLE :")
         print("1. Ouvre le fichier 'data/pins_ideas_to_fill.csv'")
-        print("2. Clique sur les liens dans la colonne 'search_link_amazon' pour ouvrir ton navigateur")
-        print("3. Trouve un produit pertinent et copie uniquement son 'ASIN' (10 caractères, ex: B0CXYZ1234)")
-        print("4. Colle cet ASIN dans la colonne 'asin' du fichier CSV pour chaque ligne que tu valides.")
-        print("5. Lance ensuite le script python src/push_ideas_to_git.py pour envoyer ton travail sur Github !")
+        print("2. Clique sur les liens 'search_link_amazon'")
+        print("3. Trouve un produit pertinent et copie son 'ASIN'")
+        print("4. Colle cet ASIN dans la colonne 'asin' pour les nouvelles lignes.")
+        
+        input("\n⏳ Appuie sur [ENTRÉE] UNE FOIS QUE TU AS FINI DE REMPLIR LES ASIN ET SAUVEGARDÉ LE FICHIER CSV...")
+        
+        print("\n🚀 Poussée des modifications vers GitHub...")
+        subprocess.run(["git", "add", "data/pins_ideas_to_fill.csv"], check=False)
+        subprocess.run(["git", "commit", "-m", "chore: Add new product ideas and ASINs"], check=False)
+        subprocess.run(["git", "push"], check=False)
+        print("\n✅ Terminé ! Le CSV est en ligne. Tu peux lancer l'action GitHub manuellement.")
         
     except Exception as e:
         print(f"\n❌ Erreur lors de l'appel à Gemini : {e}")

@@ -88,6 +88,9 @@ def main():
             generated_count += 1
             
         except Exception as e:
+            import tenacity
+            if isinstance(e, tenacity.RetryError):
+                e = e.last_attempt.exception()
             logging.error(f"Failed to process ASIN {asin}: {e}")
             continue
             

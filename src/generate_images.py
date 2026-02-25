@@ -41,9 +41,11 @@ def generate_image_hf(prompt: str) -> Image.Image:
         
         # Check if model is still loading (commonly returns 503)
         if response.status_code == 503:
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] HF API 503: Model loading. {response.text}")
             raise GenerationError(f"Model is loading, retrying... {response.json()}")
             
         if response.status_code != 200:
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] HF API Error {response.status_code}: {response.text}")
             raise GenerationError(f"HF API Error {response.status_code}: {response.text}")
             
         image = Image.open(BytesIO(response.content))

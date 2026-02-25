@@ -58,8 +58,7 @@ def generate_image_hf(prompt: str) -> Image.Image:
 
 def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> str:
     """
-    Ajoute un beau texte overlay Pinterest sur l'image.
-    Style moderne, lisible, ombre subtile, sans boîte de fond.
+    Ajoute un texte overlay Pinterest stylisé à la main (Caveat).
     """
     if output_path is None:
         output_path = image_path.replace(".png", "_final.png")
@@ -69,9 +68,9 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     img = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(img)
     
-    font_size = 115
+    font_size = 160 # Taille augmentée pour police manuscrite
     try:
-        font_path = BASE_DIR / "assets" / "fonts" / "Montserrat-Bold.ttf"
+        font_path = BASE_DIR / "assets" / "fonts" / "Caveat-Bold.ttf"
         font = ImageFont.truetype(str(font_path), font_size)
     except:
         try:
@@ -79,39 +78,62 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         except:
            font = ImageFont.load_default()
     
-    # Wrap text if it is too wide
-    words = str(texte).upper().split()
+    # Wrap text (pas de uppercase() pour garder le style handwriting)
+    words = str(texte).split()
     lines = []
     current_line = []
+    
+    char_spacing = 8 # Espacement horizontal ajouté (tracking)
+    
     for word in words:
         current_line.append(word)
-        line_w = draw.textlength(" ".join(current_line), font=font)
-        if line_w > img.width - 100:
+        joined_line = " ".join(current_line)
+        line_w = 0
+        for char in joined_line:
+            line_w += draw.textlength(char, font=font) + char_spacing
+        
+        if line_w > img.width - 150: # Marges
             current_line.pop()
             lines.append(" ".join(current_line))
             current_line = [word]
     if current_line:
         lines.append(" ".join(current_line))
         
-    line_h = int(font_size * 1.3)
+    line_h = int(font_size * 1.5) # Interligne très aéré
+    total_h = len(lines) * line_h
     
-    y = 95  # Position idéale (tiers supérieur)
+    y = max(0, (img.height - total_h) // 2)
+    
     for line in lines:
-        line_w = draw.textlength(line, font=font)
+        line_w = 0
+        for char in line:
+            line_w += draw.textlength(char, font=font) + char_spacing
+        line_w -= char_spacing # retirer l'espacement du dernier caractère
+        
         x = (img.width - line_w) // 2
         
-        # Ombre noire très douce (3 passes pour effet profondeur)
-        shadow = (0, 0, 0, 200)
-        draw.text((x+7, y+7), line, font=font, fill=shadow)
-        draw.text((x+5, y+5), line, font=font, fill=shadow)
-        draw.text((x+3, y+3), line, font=font, fill=shadow)
+        for char in line:
+            cw = draw.textlength(char, font=font)
+            
+            # Contour léger (stroke) pour lisibilité sans boîte
+            stroke_color = (0, 0, 0, 160)
+            stroke_w = 3
+            for dx in range(-stroke_w, stroke_w + 1, 2):
+                for dy in range(-stroke_w, stroke_w + 1, 2):
+                    if dx != 0 or dy != 0:
+                        draw.text((x + dx, y + dy), char, font=font, fill=stroke_color)
+                        
+            # Ombre portée de profondeur
+            shadow = (0, 0, 0, 220)
+            draw.text((x+6, y+6), char, font=font, fill=shadow)
+            draw.text((x+4, y+4), char, font=font, fill=shadow)
+            draw.text((x+2, y+2), char, font=font, fill=shadow)
 
-        # Texte principal : blanc pur
-        draw.text((x, y), line, font=font, fill=(255, 255, 255))
-        
-        # Petit liseré blanc très fin pour encore plus de lisibilité
-        draw.text((x-1, y-1), line, font=font, fill=(255, 255, 255, 80))
-        
+            # Texte au premier plan
+            draw.text((x, y), char, font=font, fill=(255, 255, 255))
+            
+            x += cw + char_spacing
+            
         y += line_h
     
     img.save(output_path, "JPEG", quality=98, optimize=True)

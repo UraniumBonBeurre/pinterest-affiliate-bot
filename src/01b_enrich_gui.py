@@ -139,6 +139,20 @@ class App:
             messagebox.showerror("Erreur", "Pas de lien de recherche Amazon pour cette ligne.")
             return
             
+        import urllib.parse
+        # Automatically shorten overly long search queries (for older rows)
+        if "amazon.fr/s?k=" in search_url:
+            try:
+                parsed = urllib.parse.urlparse(search_url)
+                query_dict = urllib.parse.parse_qs(parsed.query)
+                if 'k' in query_dict:
+                    words = query_dict['k'][0].split()
+                    if len(words) > 4:
+                        short_query = " ".join(words[:4])
+                        search_url = f"https://www.amazon.fr/s?k={urllib.parse.quote_plus(short_query)}"
+            except Exception:
+                pass
+                
         self.row_widgets[idx]['btn'].config(state=tk.DISABLED)
         self.row_widgets[idx]['status'].config(text="🌐 Navigation en cours...", fg="#2563eb")
         
@@ -164,18 +178,26 @@ class App:
                     page.goto(search_url)
                     
                     while True:
-                        time.sleep(0.5)
+                        # IMPORTANT: Don't use time.sleep(0.5) because it blocks the Playwright execution thread
+                        try:
+                            page.wait_for_timeout(500)
+                        except Exception:
+                            # If page was closed manually by user
+                            pass
+                            
                         try:
                             pages = context.pages
                             if not pages:
                                 break
                                 
                             for p_page in pages:
-                                url = p_page.url
-                                # Product pages in Amazon usually carry /dp/ or /gp/product/
-                                if "/dp/" in url or "/gp/product/" in url:
-                                    final_url = url
-                                    break
+                                try:
+                                    url = p_page.url
+                                    if "/dp/" in url or "/gp/product/" in url:
+                                        final_url = url
+                                        break
+                                except Exception:
+                                    pass
                             
                             if final_url:
                                 break

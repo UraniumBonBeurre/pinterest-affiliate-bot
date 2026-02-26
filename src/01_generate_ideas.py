@@ -50,6 +50,7 @@ def generate_ideas():
 Your JSON must be an object with a 'pins' array containing objects with the following keys:
 - slug: unique identifier string (e.g. pin_word_001)
 - title: Catchy SEO title string (max 90 chars)
+- amazon_search_query: string of max 3-4 specific keywords to find the product on Amazon (e.g. "small sofa convertible")
 - overlay_text: ULTRA catchy text for the image overlay. Rules: max 7 words, emotional + immediate benefit, capitalize only important words. Must make people want to click and "see more".
 - description: Engaging description string (200-300 chars) ending exactly with "[LIEN_AFFILIATE]"
 - niche: Category string
@@ -99,7 +100,11 @@ Your JSON must be an object with a 'pins' array containing objects with the foll
                     writer.writeheader()
                 
                 for pin in pins:
-                    search_query = pin.get("title", "")
+                    search_query = pin.get("amazon_search_query")
+                    if not search_query:
+                        # Fallback: keep only the first 3 words of the title to avoid "0 results" on Amazon
+                        search_query = " ".join(pin.get("title", "").split(" ")[:3])
+                        
                     encoded_query = urllib.parse.quote_plus(search_query)
                     search_link = f"https://www.amazon.fr/s?k={encoded_query}"
                     

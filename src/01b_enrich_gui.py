@@ -118,14 +118,22 @@ class App:
         def _task():
             final_url = None
             try:
+                from playwright_stealth import stealth_sync
                 with sync_playwright() as p:
                     # Use a persistent context so the user doesn't have to log in or see pure cold start captchas
                     context = p.chromium.launch_persistent_context(
                         user_data_dir=str(PROFILE_DIR),
                         headless=False,
-                        viewport={"width": 1280, "height": 800}
+                        viewport={"width": 1280, "height": 800},
+                        args=[
+                            "--disable-blink-features=AutomationControlled",
+                            "--disable-infobars"
+                        ],
+                        ignore_default_args=["--enable-automation"]
                     )
                     page = context.pages[0] if context.pages else context.new_page()
+                    stealth_sync(page)
+                    
                     page.goto(search_url)
                     
                     while True:

@@ -20,10 +20,10 @@ fi
 echo ""
 echo "📦 3. Vérification des dépendances interface..."
 if [ -f "venv/bin/pip" ]; then
-    venv/bin/pip install -q playwright pandas
+    venv/bin/pip install -q playwright playwright-stealth pandas
     venv/bin/playwright install chromium
 else
-    pip3 install -q playwright pandas
+    pip3 install -q playwright playwright-stealth pandas
     playwright install chromium
 fi
 

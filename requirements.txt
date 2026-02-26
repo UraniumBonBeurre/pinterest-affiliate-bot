@@ -8,3 +8,4 @@ boto3
 huggingface_hub
 streamlit
 playwright
+playwright-stealth

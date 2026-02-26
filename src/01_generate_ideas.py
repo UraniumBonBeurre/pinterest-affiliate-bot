@@ -234,14 +234,34 @@ Focus on premium home accessories and organization products."""
                     print("❌ No valid pins in this batch")
                     continue
 
-                file_exists = os.path.isfile(output_file)
+                FIELDNAMES = ["search_link_amazon", "amazon_product_url", "title",
+                              "overlay_text", "description", "niche",
+                              "french_hint", "image_description_for_llm"]
+
+                # Smart header check: auto-migrate if header is outdated
+                needs_header = True
+                if os.path.isfile(output_file) and os.path.getsize(output_file) > 0:
+                    with open(output_file, 'r', encoding='utf-8', newline='') as _fh:
+                        existing_header = next(csv.reader(_fh))
+                    if existing_header == FIELDNAMES:
+                        needs_header = False
+                    else:
+                        # Old header → migrate all existing rows to new schema
+                        print(f"  ⚠️  Header CSV obsolète ({existing_header}) → migration...")
+                        with open(output_file, 'r', encoding='utf-8', newline='') as _fr:
+                            old_rows = list(csv.reader(_fr))[1:]
+                        with open(output_file, 'w', encoding='utf-8', newline='') as _fw:
+                            _w = csv.DictWriter(_fw, fieldnames=FIELDNAMES, quoting=csv.QUOTE_ALL)
+                            _w.writeheader()
+                            for old_row in old_rows:
+                                d = {existing_header[i]: (old_row[i] if i < len(old_row) else '') for i in range(len(existing_header))}
+                                _w.writerow({fn: d.get(fn, '') for fn in FIELDNAMES})
+                        needs_header = False
+                        print("  ✅ Migration terminée")
 
                 with open(output_file, 'a', encoding='utf-8', newline='') as f:
-                    fieldnames = ["search_link_amazon", "amazon_product_url", "title",
-                                  "overlay_text", "description", "niche",
-                                  "french_hint", "image_description_for_llm"]
-                    writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-                    if not file_exists:
+                    writer = csv.DictWriter(f, fieldnames=FIELDNAMES, quoting=csv.QUOTE_ALL)
+                    if needs_header:
                         writer.writeheader()
 
                     for pin in pins:

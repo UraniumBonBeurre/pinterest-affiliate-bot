@@ -71,8 +71,23 @@ Style: Aspirational problem/solution. Examples:
 
 ───────────────────────────────────────────
 KEY 2 — "amazon_search_query"
-A precise 3–6 word search query to find this product on Amazon.fr.
-Examples: "woven storage baskets beige", "modern desk lamp adjustable arm"
+A precise 3–6 word search query to find THIS EXACT product on Amazon.fr.
+
+CRITICAL DISAMBIGUATION RULE:
+The query must be specific enough that Amazon returns the correct product category.
+Add niche context words to remove ambiguity.
+Examples of BAD (too generic) vs GOOD (niche-specific) queries:
+  ✗ "wooden charging station" → returns phone/tablet chargers
+  ✓ "cordless drill battery station workshop" → returns tool chargers
+  ✗ "storage box" → returns anything
+  ✓ "acrylic sock drawer divider organizer" → returns the right product
+  ✗ "magnetic holder" → too vague
+  ✓ "magnetic tool strip workshop wall" → correct workshop product
+  ✗ "organizer bins" → too generic
+  ✓ "small parts hardware screw organizer bins" → exact product
+
+Always include 1-2 words that UNIQUELY IDENTIFY the product category within the niche.
+
 
 ───────────────────────────────────────────
 KEY 3 — "overlay_text"

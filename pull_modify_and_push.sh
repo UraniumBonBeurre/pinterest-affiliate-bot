@@ -10,6 +10,15 @@ echo "📥 1. Récupération de la dernière version du fichier (git pull)..."
 git pull --autostash --rebase
 
 echo ""
+echo "🗣️  0. Vérification du fichier CSV (création si absent)..."
+CSV_PATH="data/pins_ideas_to_fill.csv"
+CSV_HEADER='"search_link_amazon","amazon_product_url","title","overlay_text","description","niche","french_hint","image_description_for_llm"'
+if [ ! -s "$CSV_PATH" ]; then
+  echo "$CSV_HEADER" > "$CSV_PATH"
+  echo "   ✅ CSV créé avec les bons champs."
+fi
+
+echo ""
 echo "🧠 2. Génération d'idées automatiques (Nouveau lot via IA)..."
 if [ -f "venv/bin/python" ]; then
     venv/bin/python src/01_generate_ideas.py
@@ -17,8 +26,13 @@ else
     python3 src/01_generate_ideas.py
 fi
 
-echo ""
-echo "📦 3. Vérification des dépendances interface..."
+# Correction typo LLM [LIEN_AFFILIARE] → [LIEN_AFFILIATE]
+if grep -q 'LIEN_AFFILIARE' "$CSV_PATH" 2>/dev/null; then
+  sed -i '' 's/LIEN_AFFILIARE/LIEN_AFFILIATE/g' "$CSV_PATH"
+  echo "   ✅ Typo [LIEN_AFFILIARE] corrigée automatiquement."
+fi
+
+
 if [ -f "venv/bin/pip" ]; then
     venv/bin/pip install -q playwright playwright-stealth pandas
     venv/bin/playwright install chromium

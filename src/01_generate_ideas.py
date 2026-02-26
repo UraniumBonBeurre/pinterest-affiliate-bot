@@ -274,7 +274,7 @@ Focus on premium home accessories and organization products."""
                             "amazon_product_url": "",
                             "title": pin.get("title", ""),
                             "overlay_text": pin.get("overlay_text", ""),
-                            "description": pin.get("description", ""),
+                            "description": pin.get("description", "").replace("LIEN_AFFILIARE", "LIEN_AFFILIATE"),
                             "niche": pin.get("niche", niche),
                             "french_hint": pin.get("french_hint", ""),
                             "image_description_for_llm": pin.get("image_description_for_llm", "")

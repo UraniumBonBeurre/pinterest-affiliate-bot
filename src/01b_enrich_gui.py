@@ -16,7 +16,9 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("🪄 Enrichissement ASIN Amazon | Pinterest Autopilot")
-        self.root.geometry("1100x700")
+        self.root.geometry("1100x800")
+        self.exit_code = 1
+        self.root.protocol("WM_DELETE_WINDOW", lambda: self.close_app(1))
         
         # Load Data
         if not CSV_PATH.exists():
@@ -68,7 +70,29 @@ class App:
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
         
+        # Bottom Frame for global actions
+        self.bottom_frame = ttk.Frame(self.main_frame)
+        self.bottom_frame.pack(fill=tk.X, pady=(20, 0))
+        
+        btn_cancel = tk.Button(
+            self.bottom_frame, text="🛑 INTERROMPRE (Ne pas pousser)", 
+            fg="#dc2626", font=("Arial", 14, "bold"), 
+            command=lambda: self.close_app(1)
+        )
+        btn_cancel.pack(side="left", padx=10, pady=10)
+        
+        btn_validate = tk.Button(
+            self.bottom_frame, text="✅ VALIDER ET POUSSER SUR GIT", 
+            fg="#16a34a", font=("Arial", 14, "bold"), 
+            command=lambda: self.close_app(0)
+        )
+        btn_validate.pack(side="right", padx=10, pady=10)
+        
         self.row_widgets = {}
+
+    def close_app(self, code):
+        self.exit_code = code
+        self.root.destroy()
 
     def populate_rows(self):
         # Clear existing
@@ -193,3 +217,4 @@ if __name__ == "__main__":
         
     app = App(root)
     root.mainloop()
+    sys.exit(app.exit_code)

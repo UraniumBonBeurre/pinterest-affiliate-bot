@@ -39,6 +39,13 @@ else
     python3 src/01b_enrich_gui.py
 fi
 
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "🛑 Opération interrompue par l'utilisateur."
+    echo "Vos liens ont été sauvegardés localement, mais RIEN n'a été poussé sur Github."
+    exit 0
+fi
+
 echo ""
 echo "🚀 5. Poussée des nouvelles données enrichies vers GitHub..."
 git add data/pins_ideas_to_fill.csv

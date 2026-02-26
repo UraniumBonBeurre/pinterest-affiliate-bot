@@ -96,27 +96,49 @@ class App:
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
 
-        # ── Mouse wheel — bound on root so works ANYWHERE in the window ──
+        # ── Mouse wheel ───────────────────────────────────────────
         def _on_mousewheel(event):
-            if event.num == 4:      # Linux up
-                self.canvas.yview_scroll(-1, "units")
-            elif event.num == 5:    # Linux down
-                self.canvas.yview_scroll(1, "units")
-            else:                   # macOS / Windows
-                self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            if event.num == 4:    self.canvas.yview_scroll(-1, "units")
+            elif event.num == 5:  self.canvas.yview_scroll( 1, "units")
+            else: self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-        self.root.bind("<MouseWheel>", _on_mousewheel)  # macOS/Windows, window-wide
-        self.root.bind("<Button-4>",   _on_mousewheel)  # Linux
-        self.root.bind("<Button-5>",   _on_mousewheel)  # Linux
+        def _bind_wheel(widget):
+            """Recursively bind wheel to widget and all its children."""
+            widget.bind("<MouseWheel>", _on_mousewheel, add="+")
+            widget.bind("<Button-4>",   _on_mousewheel, add="+")
+            widget.bind("<Button-5>",   _on_mousewheel, add="+")
+            for child in widget.winfo_children():
+                _bind_wheel(child)
+
+        # Bind on root + canvas now; also store the binder to run on new rows
+        self._bind_wheel = _bind_wheel
+        _bind_wheel(self.root)
 
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
-        
+
         self.row_widgets = {}
 
     def close_app(self, code):
         self.exit_code = code
         self.root.destroy()
+
+    def delete_row(self, idx):
+        """Remove a row from the DataFrame and CSV immediately."""
+        if messagebox.askyesno("❌ Supprimer ?", "Supprimer cette ligne du CSV ? (irréversible)"):
+            self.df = self.df.drop(index=idx)
+            try:
+                self.df.to_csv(CSV_PATH, index=False, quoting=csv.QUOTE_ALL)
+            except Exception as e:
+                messagebox.showerror("Erreur", str(e))
+                return
+            # Remove the frame from view
+            if idx in self.row_widgets:
+                self.row_widgets[idx]['frame'].destroy()
+                del self.row_widgets[idx]
+            # Update scroll region
+            self.scrollable_frame.update_idletasks()
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     # French niche labels for quick reading
     NICHE_FR = {
@@ -178,16 +200,25 @@ class App:
                 font=("Arial", 11, "italic"), fg="#6b7280", anchor="w"
             ).pack(anchor="w")
             
-            # ── Right: status + button ────────────────────────────────────
+            # ── Right: delete ✕ + status + open button ──────────────────────────────
             status_lbl = tk.Label(frame, text="⏳ En attente", font=("Arial", 13, "bold"), fg="#d97706", width=22, anchor="w")
             status_lbl.pack(side="left", padx=10)
-            
+
             search_url = str(row.get('search_link_amazon', ''))
             btn = ttk.Button(frame, text="🔍 Ouvrir & Chercher", command=lambda i=idx, s=search_url: self.open_browser(i, s))
-            btn.pack(side="right", padx=15, pady=15)
-            
+            btn.pack(side="right", padx=8, pady=15)
+
+            # ✕ Delete button
+            del_btn = tk.Button(
+                frame, text="✕", font=("Arial", 14, "bold"), fg="#ef4444", bg="#1a1a2e",
+                activeforeground="white", activebackground="#dc2626",
+                relief="flat", cursor="hand2", bd=0,
+                command=lambda i=idx: self.delete_row(i)
+            )
+            del_btn.pack(side="right", padx=4, pady=15)
+
             self.row_widgets[idx] = {'status': status_lbl, 'btn': btn, 'frame': frame}
-            
+            self._bind_wheel(frame)  # scroll works on all new row widgets
         if pending_count == 0:
             tk.Label(self.scrollable_frame, text="🎉 Bravo ! Tous les produits sont enrichis.", font=("Arial", 20), fg="green").pack(pady=80)
 

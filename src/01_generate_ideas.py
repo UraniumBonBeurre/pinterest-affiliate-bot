@@ -293,6 +293,27 @@ Focus on premium home accessories and organization products."""
     if total_generated > 0:
         print("📌 Niches enregistrées pour la rotation.")
 
+    # ── Interleave niches in CSV (évite bloc groupé par niche) ─────────────────
+    if len(niches_to_run) > 1 and total_generated > 0:
+        try:
+            import pandas as pd
+            import random as _random
+            df_all = pd.read_csv(output_file)
+            groups = {n: list(g.index) for n, g in df_all.groupby('niche', sort=False)}
+            niches_present = [k for k in groups if groups[k]]
+            _random.shuffle(niches_present)
+            order = []
+            while any(groups[k] for k in niches_present):
+                for k in niches_present:
+                    if groups[k]:
+                        order.append(groups[k].pop(0))
+            df_shuffled = df_all.loc[order].reset_index(drop=True)
+            df_shuffled.to_csv(output_file, index=False, quoting=__import__('csv').QUOTE_ALL)
+            print(f"🔀 Lignes mélangées par niche en round-robin dans {output_file.name}")
+        except Exception as e:
+            print(f"⚠️  Mélange impossible : {e}")
+
+
 
 if __name__ == "__main__":
     generate_ideas()

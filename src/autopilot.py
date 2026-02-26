@@ -25,12 +25,9 @@ def main():
         logging.error(f"Failed to read CSV: {e}")
         return
 
-    # Filter rows that actually have an Amazon URL filled by the user
-    # NaN check or empty string check
-    available_mask = df['amazon_product_url'].notna() & (df['amazon_product_url'].str.strip() != "")
-    # Also include rows that have a search_link_amazon even if amazon_product_url is empty
-    has_search = df['search_link_amazon'].notna() & (df['search_link_amazon'].str.strip() != "")
-    available_mask = available_mask | has_search
+    # Only publish rows where the user has filled in an amazon_product_url.
+    # Rows without amazon_product_url are kept in CSV for later manual enrichment.
+    available_mask = df['amazon_product_url'].notna() & (df['amazon_product_url'].str.strip() != '') & (df['amazon_product_url'].str.strip().str.lower() != 'nan')
     available_df = df[available_mask]
     
     available_count = len(available_df)
@@ -123,11 +120,11 @@ def main():
             logging.error(f"Failed to process pin #{pin_uid}: {e}")
             continue
             
-    # 6. Delete processed rows and save
+    # 6. Delete ONLY successfully published rows; keep empty-URL rows for later
     if indexes_to_drop:
         df = df.drop(indexes_to_drop)
-        df.to_csv(csv_path, index=False)
-        logging.info(f"Deleted {len(indexes_to_drop)} successfully published products from CSV.")
+        df.to_csv(csv_path, index=False, quoting=__import__('csv').QUOTE_ALL)
+        logging.info(f"Deleted {len(indexes_to_drop)} published products from CSV. Empty-URL rows preserved.")
         
     logging.info(f"Autopilot finished. Successfully generated and published {generated_count}/{sample_size} pins.")
 

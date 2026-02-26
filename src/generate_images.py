@@ -406,9 +406,8 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         max_w=MAX_TXT_W, max_h=MAX_TXT_H,
         start=190, minimum=50, spacing=1.20,
     )
-    total_txt_h = len(lines) * line_h
-    usable      = BAND_H - PAD_TOP - PAD_BOT
-    start_y     = PAD_TOP + max(0, (usable - total_txt_h) // 2)
+    # start_y sera calculé après la mesure réelle du bloc (voir section 3)
+
 
     # ══════════════════════════════════════════════════════════════════════════
     # 3. CALCUL DES BOÎTES DE HIGHLIGHT
@@ -419,11 +418,9 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     # ══════════════════════════════════════════════════════════════════════════
     HL_PAD    = int(fsize * 0.20)   # padding égal sur tous les côtés
     HL_RADIUS = max(10, int(fsize * 0.22))
+    INTER_GAP = int(fsize * 0.22)   # espace visible entre blocs consécutifs
 
     # ── Palette de couleurs ─────────────────────────────────────────────────
-    # Chaque palette : (couleur_blob RGBA, couleur_texte RGBA, couleur_contour RGBA)
-    # Toutes les palettes sont choisies pour être lisibles et s'accorder
-    # avec des décors intérieurs (beige, bois, blanc, sage green, etc.)
     PALETTES = [
         # (blob_color,              text_color,             stroke_color)
         ((10,  8,   6,  230),  (255, 255, 255, 255), (20,  15,  10, 255)),  # Noir + Blanc
@@ -438,29 +435,39 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         ((180, 155, 120, 215), (30,  25,  15, 255),  (120, 100,  70, 255)), # Sable doré + Brun foncé
     ]
     import random
-    rng = random.Random(hash(texte))  # seed déterministe → même texte = même palette
+    rng = random.Random(hash(texte))
     blob_color, text_color, stroke_color = rng.choice(PALETTES)
 
-    dummy         = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-    text_positions = []   # (txt_x, txt_y) pour chaque ligne
-    hl_boxes       = []   # [x0, y0, x1, y1] pour chaque ligne
+    # ── Passe 1 : calculer les boîtes à y=0 (relatif) ───────────────────────
+    dummy = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    text_positions_rel = []
+    hl_boxes_rel       = []
 
-    y = start_y
+    y = 0
     for line in lines:
         lw    = int(_tw(font, line))
         txt_x = (W - lw) // 2
-
-        # textbbox renvoie (left, top, right, bottom) des glyphes réels
         tbbox = dummy.textbbox((txt_x, y), line, font=font)
-
-        text_positions.append((txt_x, y))
-        hl_boxes.append([
-            tbbox[0] - HL_PAD,   # x0
-            tbbox[1] - HL_PAD,   # y0
-            tbbox[2] + HL_PAD,   # x1
-            tbbox[3] + HL_PAD,   # y1
+        text_positions_rel.append((txt_x, y))
+        hl_boxes_rel.append([
+            tbbox[0] - HL_PAD,                    # x0
+            tbbox[1] - HL_PAD + INTER_GAP // 2,   # y0 (réduit pour créer le gap)
+            tbbox[2] + HL_PAD,                    # x1
+            tbbox[3] + HL_PAD - INTER_GAP // 2,   # y1 (réduit pour créer le gap)
         ])
         y += line_h
+
+    # ── Passe 2 : centrer le bloc à 35 % de la hauteur image ────────────────
+    actual_block_h  = hl_boxes_rel[-1][3] - hl_boxes_rel[0][1]
+    target_center_y = int(H * 0.35)
+    block_top_y     = target_center_y - actual_block_h // 2
+    shift = block_top_y - hl_boxes_rel[0][1]
+
+    text_positions = [(tx, ty + shift) for tx, ty in text_positions_rel]
+    hl_boxes       = [[hx0, hy0 + shift, hx1, hy1 + shift]
+                      for hx0, hy0, hx1, hy1 in hl_boxes_rel]
+
+
 
 
     # ══════════════════════════════════════════════════════════════════════════

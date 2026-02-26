@@ -7,6 +7,7 @@ import urllib.parse
 from huggingface_hub import InferenceClient
 from config import HF_TOKEN, DATA_DIR
 from utils import now_ts
+from niche_selector import pick_niche, mark_used
 
 def extract_json(text: str) -> dict:
     """Extraction JSON plus robuste"""
@@ -41,10 +42,17 @@ def generate_ideas():
         print("❌ Erreur: HF_TOKEN non configuré dans .env")
         return
 
-    niche = input("👉 Thème / niche principale ? (ex: bedroom accessories, living room organization, cable management...)\n> ").strip()
-    if not niche:
-        niche = "home accessories and organization"
-        print(f"Utilisation par défaut : {niche}")
+    raw_niche = input(
+        "👉 Thème / niche principale ? "
+        "(appuyez sur Entrée pour le choix automatique intelligent)\n"
+        "  ex: bedroom accessories, living room organization, bricolage\n> "
+    ).strip()
+
+    if not raw_niche:
+        niche = pick_niche(verbose=True)      # sélection auto (rotation + saison)
+    else:
+        niche = raw_niche
+        print(f"🎯 Niche manuelle : {niche}")
 
     count_str = input("👉 Combien d'idées veux-tu générer ? (recommandé: 8-12 par batch)\n> ")
     count = int(count_str) if count_str.strip().isdigit() else 10
@@ -235,6 +243,11 @@ Focus on premium home accessories and organization products."""
             print(f"❌ Erreur lors du traitement de la réponse : {e}")
 
     print(f"\n🎉 GÉNÉRATION TERMINÉE ! {total_generated} idées générées dans {output_file}")
+
+    # Enregistre la niche utilisée pour la rotation future
+    if total_generated > 0:
+        mark_used(niche)
+        print(f"📌 Niche '{niche}' enregistrée pour la rotation.")
 
 
 if __name__ == "__main__":

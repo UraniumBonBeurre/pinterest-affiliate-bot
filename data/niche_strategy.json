@@ -1,0 +1,38 @@
+{
+    "_comment": "Stratégie de sélection automatique de niche. Éditez librement.",
+    "niches": [
+        "bedroom_essentials",
+        "living_room_storage",
+        "kitchen_organization",
+        "desk_organization",
+        "cable_management",
+        "bathroom_storage",
+        "small_space_solutions",
+        "entryway_decor",
+        "outdoor_living",
+        "bricolage"
+    ],
+    "seasonal_boost": {
+        "12-02": [
+            "bedroom_essentials",
+            "cable_management",
+            "small_space_solutions"
+        ],
+        "03-05": [
+            "outdoor_living",
+            "entryway_decor",
+            "small_space_solutions"
+        ],
+        "06-08": [
+            "outdoor_living",
+            "bathroom_storage",
+            "living_room_storage"
+        ],
+        "09-11": [
+            "living_room_storage",
+            "kitchen_organization",
+            "bedroom_essentials"
+        ]
+    },
+    "last_used": {}
+}

@@ -10,7 +10,13 @@ def get_amz_link(asin: str) -> str:
     return f"https://www.amazon.fr/dp/{asin}?tag={AMAZON_ASSOCIATE_TAG}&linkCode=ogi"
 
 def upload_to_r2(local_image_path: str) -> str:
-    """Upload image to Cloudflare R2 and return the public URL"""
+    """Upload image to Cloudflare R2 and return the public URL.
+    
+    A timestamp prefix is added to the filename so that every upload is
+    globally unique — this prevents Pinterest from serving a cached old image
+    when a new pin reuses the same row index as a previous run.
+    """
+    import time as _time
     if not all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_HASH]):
         raise Exception("Missing R2 credentials in environment variables.")
         
@@ -24,17 +30,18 @@ def upload_to_r2(local_image_path: str) -> str:
         config=Config(signature_version='s3v4'),
         region_name="auto"
     )
-    
-    file_name = os.path.basename(local_image_path)
-    
+
+    # Unique filename: timestamp prefix ensures no collision across runs
+    ts = int(_time.time())
+    base_name  = os.path.basename(local_image_path)          # e.g. autopilot_000002.jpg
+    file_name  = f"{ts}_{base_name}"                         # e.g. 1740607577_autopilot_000002.jpg
+
     # Upload the file
     s3.upload_file(local_image_path, R2_BUCKET_NAME, file_name, ExtraArgs={"ContentType": "image/jpeg"})
     
-    # Construct the public URL using the dev hash
-    # Example format: https://pub-[hash].r2.dev/[file_name]
     public_url = f"https://pub-{R2_PUBLIC_HASH}.r2.dev/{file_name}"
-    
     return public_url
+
 
 def publish_single_pin(local_image_path: str, title: str, affiliate_link: str, description: str = None) -> bool:
     """

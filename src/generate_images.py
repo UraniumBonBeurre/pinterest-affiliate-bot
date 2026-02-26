@@ -156,14 +156,12 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     img.save(output_path, "JPEG", quality=98, optimize=True)
     return output_path
 
-def generate_interior_image(subject: str, image_path: str, overlay_text: str = None) -> str:
+def generate_interior_image(image_description: str, image_path: str, overlay_text: str = None) -> str:
     """
     Generates a single image via HF, and adds Python PIL overlay.
     Used by the autopilot workflow.
     """
-    prompt = f"""
-    Photorealistic vertical Pinterest image 1000x1500, {subject}, modern minimalist home interior 2026, soft natural daylight from large window, realistic textures wood linen concrete plants, cozy neutral colors beige white sage green warm wood tones, clean aesthetic composition, highly detailed 8K, professional interior photography style, no people, no text, no watermark, no artifacts, sharp focus, highly pinnable
-    """
+    prompt = image_description
     
     base_img = generate_image_hf(prompt)
     # Resize to expected Pinterest 2:3 ratio (If HF couldn't honor it exactly)
@@ -193,7 +191,7 @@ def process_batch():
         overlay_text = row.get("overlay_text", "")
         description = row.get("description", "")
         affiliate_url = row.get("affiliate_url", "")
-        keywords = row.get("keywords", "")
+        image_description = row.get("image_description_for_llm", title)
         
         print(f"[{now_ts()}] Processing {slug}...")
         
@@ -202,9 +200,11 @@ def process_batch():
         
         if not image_path.exists():
             try:
-                # Prompt tuning for FLUX
-                prompt = f"Pinterest style aesthetic product photo, vertical orientation, brightly lit, high quality professional photography, highly realistic, 8k resolution. Subject: {title}"
-                generate_interior_image(prompt, str(image_path), str(overlay_text) if pd.notna(overlay_text) else title)
+                # Use the ultra-specific LLM prompt provided in the CSV
+                if pd.isna(image_description) or not str(image_description).strip():
+                    image_description = f"Pinterest style aesthetic product photo, vertical orientation, brightly lit, high quality professional photography, highly realistic, 8k resolution. Subject: {title}"
+                
+                generate_interior_image(str(image_description), str(image_path), str(overlay_text) if pd.notna(overlay_text) else title)
                 print(f"[{now_ts()}] -> Saved successfully")
             except Exception as e:
                 import tenacity

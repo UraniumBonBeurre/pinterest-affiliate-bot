@@ -48,13 +48,12 @@ def generate_ideas():
     
     system_prompt = """You are a Pinterest expert and Amazon affiliate. You output ONLY valid JSON.
 Your JSON must be an object with a 'pins' array containing objects with the following keys:
-- slug: unique identifier string (e.g. pin_word_001)
 - title: Catchy SEO title string (max 90 chars)
 - amazon_search_query: string of max 3-4 specific keywords to find the product on Amazon (e.g. "small sofa convertible")
 - overlay_text: ULTRA catchy text for the image overlay. Rules: max 7 words, emotional + immediate benefit, capitalize only important words. Must make people want to click and "see more".
 - description: Engaging description string (200-300 chars) ending exactly with "[LIEN_AFFILIATE]"
 - niche: Category string
-- keywords: 5-10 relevant keywords string, comma separated
+- image_description_for_llm: Photorealistic vertical Pinterest image description for generating the background image. Keep it dense and visual (e.g. "Photorealistic vertical Pinterest image 1000x1500, modern minimalist home office desk with perfectly organized cables using sleeves, soft natural daylight, realistic black and white tones, highly detailed 8K, clean aesthetic, no people, no text").
 """
     
     batch_size = 15
@@ -93,8 +92,8 @@ Your JSON must be an object with a 'pins' array containing objects with the foll
             file_exists = os.path.isfile(output_file)
             
             with open(output_file, 'a', encoding='utf-8', newline='') as f:
-                # Reordered fieldnames as requested (removed slug)
-                fieldnames = ["search_link_amazon", "amazon_product_url", "title", "overlay_text", "description", "niche", "keywords"]
+                # Reordered fieldnames as requested (removed slug, added image_description_for_llm)
+                fieldnames = ["search_link_amazon", "amazon_product_url", "title", "overlay_text", "description", "niche", "image_description_for_llm"]
                 writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
                 if not file_exists:
                     writer.writeheader()
@@ -115,7 +114,7 @@ Your JSON must be an object with a 'pins' array containing objects with the foll
                         "overlay_text": pin.get("overlay_text", ""),
                         "description": pin.get("description", ""),
                         "niche": pin.get("niche", ""),
-                        "keywords": pin.get("keywords", "")
+                        "image_description_for_llm": pin.get("image_description_for_llm", "")
                     }
                     writer.writerow(row)
             

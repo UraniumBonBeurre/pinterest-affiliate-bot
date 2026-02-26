@@ -87,6 +87,35 @@ def pick_niche(verbose: bool = True) -> str:
     return chosen
 
 
+def pick_niche_multi(n: int = 3, verbose: bool = True) -> list[str]:
+    """
+    Retourne les N meilleures niches selon score (rotation + saison).
+    Utilisé pour générer un batch diversifié en un seul run.
+    """
+    data = _load()
+    niches = data.get("niches", [])
+    last_used = data.get("last_used", {})
+    boosted   = _current_season(data)
+
+    scores = {}
+    for ni in niches:
+        days   = _days_since_last_use(ni, last_used)
+        boost  = 2.0 if ni in boosted else 1.0
+        jitter = random.uniform(0.8, 1.2)
+        scores[ni] = days * boost * jitter
+
+    top = sorted(scores, key=scores.__getitem__, reverse=True)[:n]
+
+    if verbose:
+        month = datetime.now().month
+        print(f"\n🎯 Top {n} niches sélectionnées pour le mois {month} :")
+        for i, ni in enumerate(top, 1):
+            flag = "⬆️ saisonnière" if ni in boosted else ""
+            print(f"   {i}. {ni} (score {round(scores[ni], 0):.0f}) {flag}")
+
+    return top
+
+
 def mark_used(niche: str) -> None:
     """Enregistre la date d'utilisation de la niche dans niche_strategy.json."""
     data = _load()

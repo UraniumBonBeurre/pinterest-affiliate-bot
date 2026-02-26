@@ -49,11 +49,19 @@ class App:
         header.pack(anchor="w", pady=(0, 5))
         
         sub = tk.Label(
-            self.main_frame, 
-            text="💡 Cliquez sur 'Ouvrir', naviguez sur Amazon, et cliquez sur un produit. La fenêtre se fermera toute seule !", 
+            self.main_frame,
+            text="💡 Cliquez sur 'Ouvrir', naviguez sur Amazon, et cliquez sur un produit. La fenêtre se fermera toute seule !",
             font=("Arial", 13), fg="#475569"
         )
-        sub.pack(anchor="w", pady=(0, 20))
+        sub.pack(anchor="w", pady=(0, 6))
+
+        # Légende des émojis
+        legend = tk.Label(
+            self.main_frame,
+            text="  🏷️ Titre du pin (EN)    🇫🇷 Traduction française (produit)    📂 Catégorie    ⏳ Statut    ",
+            font=("Arial", 11), fg="#94a3b8", anchor="w", justify="left"
+        )
+        legend.pack(anchor="w", pady=(0, 14))
         
         # Bottom Frame for global actions (Packed FIRST at the bottom)
         self.bottom_frame = ttk.Frame(self.main_frame)
@@ -80,7 +88,7 @@ class App:
         self.canvas = tk.Canvas(self.middle_frame, highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self.middle_frame, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas)
-        
+
         self.scrollable_frame.bind(
             "<Configure>",
             lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -88,19 +96,19 @@ class App:
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
 
-        # ── Mouse wheel binding (macOS + Linux + Windows) ──────────────────
+        # ── Mouse wheel — bound on root so works ANYWHERE in the window ──
         def _on_mousewheel(event):
-            if event.num == 4:          # Linux scroll up
+            if event.num == 4:      # Linux up
                 self.canvas.yview_scroll(-1, "units")
-            elif event.num == 5:        # Linux scroll down
+            elif event.num == 5:    # Linux down
                 self.canvas.yview_scroll(1, "units")
-            else:                       # macOS / Windows
+            else:                   # macOS / Windows
                 self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-        self.canvas.bind_all("<MouseWheel>", _on_mousewheel)   # Windows / macOS
-        self.canvas.bind_all("<Button-4>", _on_mousewheel)     # Linux
-        self.canvas.bind_all("<Button-5>", _on_mousewheel)     # Linux
-        
+        self.root.bind("<MouseWheel>", _on_mousewheel)  # macOS/Windows, window-wide
+        self.root.bind("<Button-4>",   _on_mousewheel)  # Linux
+        self.root.bind("<Button-5>",   _on_mousewheel)  # Linux
+
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
         
@@ -133,9 +141,11 @@ class App:
         for idx, row in self.df.iterrows():
             amz_url = str(row.get('amazon_product_url', '')).strip()
             title   = str(row.get('title', '')).strip()
-            overlay = str(row.get('overlay_text', '')).strip()   # 2-4 mots percutants
-            niche   = str(row.get('niche', '')).strip()
-            niche_fr = self.NICHE_FR.get(niche, niche.replace('_', ' ').title())
+            overlay   = str(row.get('overlay_text', '')).strip()
+            hint      = str(row.get('french_hint', '')).strip()  # traduction FR LLM
+            fr_text   = hint if (hint and hint.lower() != 'nan') else overlay  # fallback
+            niche     = str(row.get('niche', '')).strip()
+            niche_fr  = self.NICHE_FR.get(niche, niche.replace('_', ' ').title())
             
             # Skip if already filled, or empty row
             if (amz_url and amz_url.lower() != 'nan') or not title:
@@ -156,10 +166,10 @@ class App:
                 font=("Arial", 14, "bold"), anchor="w", justify="left", wraplength=500
             ).pack(anchor="w")
 
-            # French hint: overlay_text in gold + niche category in grey
-            if overlay and overlay.lower() != 'nan':
+            # Traduction FR : french_hint LLM (ou overlay fallback)
+            if fr_text and fr_text.lower() != 'nan':
                 tk.Label(
-                    text_block, text=f"🇫🇷  {overlay}",
+                    text_block, text=f"🇫🇷 {fr_text}",
                     font=("Arial", 13), fg="#d97706", anchor="w"
                 ).pack(anchor="w", pady=(2, 0))
 

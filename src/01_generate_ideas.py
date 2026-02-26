@@ -44,20 +44,31 @@ def generate_ideas():
 
     raw_niche = input(
         "👉 Thème / niche principale ? "
-        "(appuyez sur Entrée pour le choix automatique intelligent)\n"
+        "(appuyez sur Entrée pour le choix automatique multi-niches intelligent)\n"
         "  ex: bedroom accessories, living room organization, bricolage\n> "
     ).strip()
 
-    if not raw_niche:
-        niche = pick_niche(verbose=True)      # sélection auto (rotation + saison)
-    else:
-        niche = raw_niche
-        print(f"🎯 Niche manuelle : {niche}")
-
-    count_str = input("👉 Combien d'idées veux-tu générer ? (recommandé: 8-12 par batch)\n> ")
+    count_str = input("👉 Combien d'idées veux-tu générer au total ? (recommandé: 8-12)\n> ")
     count = int(count_str) if count_str.strip().isdigit() else 10
 
-    print(f"\n🚀 Génération de {count} idées premium pour '{niche}'...")
+    # ── Sélection des niches ──────────────────────────────────────────
+    if raw_niche:
+        niches_to_run = [(raw_niche, count)]
+        print(f"🎯 Niche manuelle : {raw_niche}")
+    else:
+        # Prend les 3 meilleures niches saisonnières et répartit les idées
+        from niche_selector import pick_niche_multi
+        top_niches = pick_niche_multi(n=3, verbose=True)
+        # Distribution proportionnelle : +1 pour les niches de tête
+        base = count // len(top_niches)
+        remainder = count % len(top_niches)
+        niches_to_run = [
+            (n, base + (1 if i < remainder else 0))
+            for i, n in enumerate(top_niches)
+        ]
+        print(f"\n📊 Répartition : { {n: c for n, c in niches_to_run} }")
+
+    print(f"\n🚀 Génération de {count} idées au total...")
 
     client = InferenceClient(api_key=HF_TOKEN)
 
@@ -154,100 +165,113 @@ Describe a premium aspirational home interior with:
   • A sense of calm, order, and luxury that makes viewers want to PIN immediately
   • 8K photorealistic, professional interior photography style
   • NO people, NO text, NO watermarks, NO dark rooms, NO cluttered scenes
+
+───────────────────────────────────────────
+KEY 7 — "french_hint"
+3 to 5 French words that describe the product simply so a French speaker can understand what it is at a glance.
+Examples:
+  English title: "Never Lose Another Screw Again" → french_hint: "Organisateur d'outils roulant"
+  English title: "The Bedside Tray That Organizes Your Nightly Routine" → french_hint: "Plateau de chevet en bois"
+  English title: "Silicone Lids That Make Food Storage Beautiful" → french_hint: "Couvercles silicone réutilisables"
+Never translate the marketing copy literally — just name the PRODUCT in plain French.
 """
+
     output_file = DATA_DIR / "pins_ideas_to_fill.csv"
     total_generated = 0
 
-    # Batch processing
-    batch_size = 10
-    batches = [batch_size] * (count // batch_size)
-    if count % batch_size > 0:
-        batches.append(count % batch_size)
+    for niche, niche_count in niches_to_run:
+        print(f"\n{'='*50}")
+        print(f"📦 Niche : {niche} — {niche_count} idées")
+        print('='*50)
 
-    for b_idx, b_count in enumerate(batches):
-        print(f"\n🔄 Batch {b_idx+1}/{len(batches)} → {b_count} idées...")
+        batch_size = 10
+        batches = [batch_size] * (niche_count // batch_size)
+        if niche_count % batch_size > 0:
+            batches.append(niche_count % batch_size)
 
-        user_prompt = f"""Generate {b_count} highly converting Pinterest pin ideas for the niche: "{niche}".
+        for b_idx, b_count in enumerate(batches):
+            print(f"\n🔄 Batch {b_idx+1}/{len(batches)} → {b_count} idées...")
+
+            user_prompt = f"""Generate {b_count} highly converting Pinterest pin ideas for the niche: "{niche}".
 
 All content (titles, overlay_text, descriptions) must be in **English**.
 Focus on premium home accessories and organization products."""
 
-        # Fallback chain: try each model in order until one succeeds
-        MODELS = [
-            "deepseek-ai/DeepSeek-V3",
-            "Qwen/Qwen2.5-72B-Instruct",
-            "meta-llama/Llama-3.3-70B-Instruct",
-        ]
-        response = None
-        for model in MODELS:
+            MODELS = [
+                "deepseek-ai/DeepSeek-V3",
+                "Qwen/Qwen2.5-72B-Instruct",
+                "meta-llama/Llama-3.3-70B-Instruct",
+            ]
+            response = None
+            for model in MODELS:
+                try:
+                    print(f"   🤖 Essai avec {model}...")
+                    response = client.chat_completion(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        max_tokens=4500,
+                        temperature=0.7
+                    )
+                    print(f"   ✅ Réponse obtenue via {model}")
+                    break
+                except Exception as model_err:
+                    print(f"   ⚠️  {model} indisponible : {str(model_err)[:120]}")
+                    continue
+
+            if response is None:
+                print("❌ Tous les modèles ont échoué pour ce batch.")
+                continue
+
             try:
-                print(f"   🤖 Essai avec {model}...")
-                response = client.chat_completion(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    max_tokens=4500,
-                    temperature=0.7
-                )
-                print(f"   ✅ Réponse obtenue via {model}")
-                break  # success — stop trying
-            except Exception as model_err:
-                print(f"   ⚠️  {model} indisponible : {str(model_err)[:120]}")
-                continue
+                reply_content = response.choices[0].message.content
+                data = extract_json(reply_content)
+                pins = data.get("pins", [])
 
-        if response is None:
-            print("❌ Tous les modèles ont échoué pour ce batch.")
-            continue
+                if not pins:
+                    print("❌ No valid pins in this batch")
+                    continue
 
-        try:
-            reply_content = response.choices[0].message.content
-            data = extract_json(reply_content)
-            pins = data.get("pins", [])
+                file_exists = os.path.isfile(output_file)
 
-            if not pins:
-                print("❌ No valid pins in this batch")
-                continue
+                with open(output_file, 'a', encoding='utf-8', newline='') as f:
+                    fieldnames = ["search_link_amazon", "amazon_product_url", "title",
+                                  "overlay_text", "description", "niche",
+                                  "french_hint", "image_description_for_llm"]
+                    writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+                    if not file_exists:
+                        writer.writeheader()
 
-            file_exists = os.path.isfile(output_file)
+                    for pin in pins:
+                        search_query = pin.get("amazon_search_query", "")
+                        encoded_query = urllib.parse.quote_plus(search_query)
+                        search_link = f"https://www.amazon.fr/s?k={encoded_query}"
 
-            with open(output_file, 'a', encoding='utf-8', newline='') as f:
-                fieldnames = ["search_link_amazon", "amazon_product_url", "title", "overlay_text",
-                              "description", "niche", "image_description_for_llm"]
-                writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+                        row = {
+                            "search_link_amazon": search_link,
+                            "amazon_product_url": "",
+                            "title": pin.get("title", ""),
+                            "overlay_text": pin.get("overlay_text", ""),
+                            "description": pin.get("description", ""),
+                            "niche": pin.get("niche", niche),
+                            "french_hint": pin.get("french_hint", ""),
+                            "image_description_for_llm": pin.get("image_description_for_llm", "")
+                        }
+                        writer.writerow(row)
 
-                if not file_exists:
-                    writer.writeheader()
+                total_generated += len(pins)
+                print(f"✅ {len(pins)} idées ajoutées")
 
-                for pin in pins:
-                    search_query = pin.get("amazon_search_query", "")
-                    encoded_query = urllib.parse.quote_plus(search_query)
-                    search_link = f"https://www.amazon.fr/s?k={encoded_query}"
+            except Exception as e:
+                print(f"❌ Erreur lors du traitement de la réponse : {e}")
 
-                    row = {
-                        "search_link_amazon": search_link,
-                        "amazon_product_url": "",
-                        "title": pin.get("title", ""),
-                        "overlay_text": pin.get("overlay_text", ""),
-                        "description": pin.get("description", ""),
-                        "niche": pin.get("niche", ""),
-                        "image_description_for_llm": pin.get("image_description_for_llm", "")
-                    }
-                    writer.writerow(row)
-
-            total_generated += len(pins)
-            print(f"✅ {len(pins)} idées ajoutées")
-
-        except Exception as e:
-            print(f"❌ Erreur lors du traitement de la réponse : {e}")
+        mark_used(niche)
 
     print(f"\n🎉 GÉNÉRATION TERMINÉE ! {total_generated} idées générées dans {output_file}")
-
-    # Enregistre la niche utilisée pour la rotation future
     if total_generated > 0:
-        mark_used(niche)
-        print(f"📌 Niche '{niche}' enregistrée pour la rotation.")
+        print("📌 Niches enregistrées pour la rotation.")
 
 
 if __name__ == "__main__":

@@ -66,11 +66,21 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
              output_path = image_path.replace(".jpg", "_final.jpg")
     
     img = Image.open(image_path).convert("RGB")
-    draw = ImageDraw.Draw(img)
     
-    font_size = 115
+    # 1. Dynamic Font Size and Selection
+    text_len = len(str(texte))
+    if text_len < 20:
+        font_size = 130
+        font_name = "Caveat-Bold.ttf"
+    elif text_len < 40:
+        font_size = 115
+        font_name = "Caveat-Bold.ttf"
+    else:
+        font_size = 95
+        font_name = "Caveat-Regular.ttf"
+
     try:
-        font_path = BASE_DIR / "assets" / "fonts" / "Montserrat-Bold.ttf"
+        font_path = BASE_DIR / "assets" / "fonts" / font_name
         font = ImageFont.truetype(str(font_path), font_size)
     except:
         try:
@@ -83,12 +93,16 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     lines = []
     current_line = []
     
+    # 2. Add padding/margins
     margin = 80
     max_width = img.width - (margin * 2)
     
+    # We need a dummy draw object just to measure text
+    dummy_draw = ImageDraw.Draw(img)
+    
     for word in words:
         current_line.append(word)
-        line_w = draw.textlength(" ".join(current_line), font=font)
+        line_w = dummy_draw.textlength(" ".join(current_line), font=font)
         if line_w > max_width:
             current_line.pop()
             if current_line:
@@ -97,58 +111,57 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     if current_line:
         lines.append(" ".join(current_line))
         
-    line_h = int(font_size * 1.15) # Espacement recommandé 1.1 - 1.2
+    line_spacing = 1.10
+    line_h = int(font_size * line_spacing)
     total_h = len(lines) * line_h
     
-    # Position dynamique (haut, centre, bas) aléatoire pondérée
-    import random
-    pos_choice = random.choices(['center', 'top', 'bottom'], weights=[60, 20, 20])[0]
-    
-    if pos_choice == 'top':
-        start_y = 100
-    elif pos_choice == 'bottom':
-        start_y = img.height - total_h - 150
-    else: # center
-        start_y = (img.height - total_h) // 2
+    # 3. Vertical Positioning: Top third, dynamic, safety margin
+    # Ideal between 12% and 28% height from top. We aim for ~18%
+    start_y = int(img.height * 0.18)
+    # Ensure it's not too close to top
+    if start_y < 120:
+        start_y = 120
         
-    # Couche pour l'ombre floutée
+    # 4. Create separate shadow layer
+    from PIL import ImageFilter
     shadow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     shadow_draw = ImageDraw.Draw(shadow_layer)
     
     y = start_y
     for line in lines:
-        line_w = draw.textlength(line, font=font)
-        x = (img.width - line_w) // 2
+        line_w = dummy_draw.textlength(line, font=font)
+        x = (img.width - int(line_w)) // 2
         
-        # Dessin de l'ombre portée noire opaque sur le calque transparent
-        shadow_draw.text((x + 5, y + 5), line, font=font, fill=(0, 0, 0, 200))
+        # Shadow: offset 5px down/right, black with ~230 opacity
+        shadow_draw.text((x + 5, y + 5), line, font=font, fill=(0, 0, 0, 230))
         y += line_h
         
-    # Appliquer le Gaussian Blur à l'ombre
-    from PIL import ImageFilter
-    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=4))
+    # Apply Gaussian blur on shadow only
+    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=1.5))
     
-    # Fusionner l'ombre avec l'image principale
-    img = Image.alpha_composite(img.convert("RGBA"), shadow_layer)
-    draw = ImageDraw.Draw(img) # Nouveau draw sur l'image fusionnée
+    # Paste shadow onto image
+    img = img.convert("RGBA")
+    img = Image.alpha_composite(img, shadow_layer)
     
-    # Dessin du texte final et de son fin contour
+    # Now draw the main text with stroke
+    draw = ImageDraw.Draw(img)
+    
     y = start_y
-    textColor = "#FFF8F0" # Blanc chaud
-    strokeColor = (0, 0, 0, 160)
+    textColor = (255, 255, 255, 255) # Pure White
+    strokeColor = (255, 255, 255, 255) # Pure White stroke as requested: 2-3px
+    stroke_w = 2
     
     for line in lines:
         line_w = draw.textlength(line, font=font)
-        x = (img.width - line_w) // 2
+        x = (img.width - int(line_w)) // 2
         
-        # Contour fin (stroke)
-        stroke_w = 2
-        for dx in range(-stroke_w, stroke_w + 1, 2):
-            for dy in range(-stroke_w, stroke_w + 1, 2):
+        # Simulate stroke with multiple text drawings around the center
+        for dx in range(-stroke_w, stroke_w + 1):
+            for dy in range(-stroke_w, stroke_w + 1):
                 if dx != 0 or dy != 0:
                     draw.text((x + dx, y + dy), line, font=font, fill=strokeColor)
                     
-        # Texte principal
+        # Main Text
         draw.text((x, y), line, font=font, fill=textColor)
         y += line_h
     

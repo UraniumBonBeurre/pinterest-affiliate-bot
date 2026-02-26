@@ -202,7 +202,7 @@ def generate_image_hf(prompt: str) -> Image.Image:
         raise GenerationError(f"HF Request Error : {e}")
 
 # ---------------------------------------------------------------------------
-# TEXT OVERLAY — Pinterest Style + Highlight per ligne
+# TEXT OVERLAY — Pinterest Style + Unified Highlight Blob
 # ---------------------------------------------------------------------------
 
 def _tw(font: ImageFont.FreeTypeFont, text: str) -> float:
@@ -212,10 +212,7 @@ def _tw(font: ImageFont.FreeTypeFont, text: str) -> float:
 
 
 def _wrap(text: str, font: ImageFont.FreeTypeFont, max_w: int) -> list[str]:
-    """
-    Word-wrap propre : jamais de coupure à l'intérieur d'un mot.
-    La police doit avoir été choisie pour que le mot le plus long tienne dans max_w.
-    """
+    """Word-wrap propre : jamais de coupure à l'intérieur d'un mot."""
     words = text.upper().split()
     lines, cur = [], []
     for word in words:
@@ -240,17 +237,11 @@ def _autofit(
     minimum: int = 50,
     spacing: float = 1.20,
 ) -> tuple:
-    """
-    Cherche la plus grande taille de police telle que :
-      - Le mot le plus long tient dans max_w (jamais de coupure)
-      - Le bloc total tient dans max_h
-    Retourne (font, lines, line_h, size).
-    """
+    """Plus grande police telle que le mot le plus long ≤ max_w et bloc ≤ max_h."""
     words_upper = text.upper().split()
     for size in range(start, minimum - 1, -2):
         font = load_font(font_name, size, font_paths)
-        longest_w = max(_tw(font, w) for w in words_upper)
-        if longest_w > max_w:
+        if max(_tw(font, w) for w in words_upper) > max_w:
             continue
         lines  = _wrap(text, font, max_w)
         line_h = int(size * spacing)
@@ -262,70 +253,128 @@ def _autofit(
     return font, lines, line_h, minimum
 
 
-def _rounded_rect_rgba(
-    layer: Image.Image,
-    x0: int, y0: int, x1: int, y1: int,
+def _draw_blob(
+    layer: "Image.Image",
+    boxes: list,
     radius: int,
-    fill: tuple,
+    color: tuple,
 ) -> None:
     """
-    Dessine un rectangle aux coins arrondis sur une couche RGBA.
-    Compatible Pillow >= 8.2 (rounded_rectangle natif) et versions antérieures.
+    Dessine un bloc de surlignage unifié à partir de plusieurs rectangles adjacents.
+
+    Stratégie par coin :
+    • Coin EXPOSÉ (pas de voisin plus large de ce côté) → arrondi (pieslice)
+    • Coin INTÉRIEUR (voisin plus large de ce côté)     → carré  (rectangle)
+
+    Aux jonctions entre deux lignes de largeurs différentes, des quarts de
+    cercle concaves sont remplis pour créer une transition fluide, donnant
+    l'impression d'un seul bloc organique.
+
+    Convention d'angles Pillow (sens horaire depuis l'Est) :
+        0°=E  90°=S  180°=O  270°=N
+    Quadrants :
+        NW = 180→270   NE = 270→360
+        SW =  90→180   SE =   0→90
     """
     draw = ImageDraw.Draw(layer)
-    try:
-        draw.rounded_rectangle([x0, y0, x1, y1], radius=radius, fill=fill)
-    except AttributeError:
-        # Fallback : composition manuelle
-        draw.rectangle([x0 + radius, y0, x1 - radius, y1], fill=fill)
-        draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
-        for cx, cy in [
-            (x0 + radius, y0 + radius),
-            (x1 - radius, y0 + radius),
-            (x0 + radius, y1 - radius),
-            (x1 - radius, y1 - radius),
-        ]:
-            draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=fill)
+    r    = radius
+    n    = len(boxes)
+
+    for i, (x0, y0, x1, y1) in enumerate(boxes):
+        prev = boxes[i - 1] if i > 0     else None
+        nxt  = boxes[i + 1] if i < n - 1 else None
+
+        # Un coin est "exposé" si aucun voisin n'est plus large de ce côté
+        tl = (prev is None) or (prev[0] >= x0)   # top-left
+        tr = (prev is None) or (prev[2] <= x1)   # top-right
+        bl = (nxt  is None) or (nxt[0]  >= x0)  # bottom-left
+        br = (nxt  is None) or (nxt[2]  <= x1)  # bottom-right
+
+        # Corps central (sans les coins)
+        draw.rectangle([x0 + r, y0,     x1 - r, y1    ], fill=color)  # bande H
+        draw.rectangle([x0,     y0 + r, x1,     y1 - r], fill=color)  # bande V
+
+        # ── Coin haut-gauche ────────────────────────────────────────────────
+        if tl:
+            draw.pieslice([x0, y0, x0 + 2*r, y0 + 2*r], start=180, end=270, fill=color)
+        else:
+            draw.rectangle([x0, y0, x0 + r, y0 + r], fill=color)
+
+        # ── Coin haut-droit ─────────────────────────────────────────────────
+        if tr:
+            draw.pieslice([x1 - 2*r, y0, x1, y0 + 2*r], start=270, end=360, fill=color)
+        else:
+            draw.rectangle([x1 - r, y0, x1, y0 + r], fill=color)
+
+        # ── Coin bas-gauche ─────────────────────────────────────────────────
+        if bl:
+            draw.pieslice([x0, y1 - 2*r, x0 + 2*r, y1], start=90, end=180, fill=color)
+        else:
+            draw.rectangle([x0, y1 - r, x0 + r, y1], fill=color)
+
+        # ── Coin bas-droit ──────────────────────────────────────────────────
+        if br:
+            draw.pieslice([x1 - 2*r, y1 - 2*r, x1, y1], start=0, end=90, fill=color)
+        else:
+            draw.rectangle([x1 - r, y1 - r, x1, y1], fill=color)
+
+    # ── Remplisseurs concaves aux jonctions ─────────────────────────────────
+    # À chaque transition de largeur, on ajoute un quart de cercle concave
+    # qui "connecte" les bords extérieurs des deux boîtes adjacentes.
+    for i in range(n - 1):
+        ax0, _ay0, ax1, ay1 = boxes[i]
+        bx0, by0, bx1, _by1 = boxes[i + 1]
+        jy = ay1   # == by0 (les boîtes se touchent)
+
+        # ── Côté gauche ─────────────────────────────────────────────────────
+        if ax0 < bx0:
+            # La boîte du haut est plus large à gauche.
+            # Remplir le quart SW centré en (bx0, jy) pour raccorder.
+            draw.pieslice([bx0 - r, jy - r, bx0 + r, jy + r],
+                          start=90, end=180, fill=color)
+        elif ax0 > bx0:
+            # La boîte du bas est plus large à gauche.
+            # Remplir le quart NW centré en (ax0, jy).
+            draw.pieslice([ax0 - r, jy - r, ax0 + r, jy + r],
+                          start=180, end=270, fill=color)
+
+        # ── Côté droit ──────────────────────────────────────────────────────
+        if ax1 > bx1:
+            # La boîte du haut est plus large à droite.
+            # Remplir le quart SE centré en (bx1, jy).
+            draw.pieslice([bx1 - r, jy - r, bx1 + r, jy + r],
+                          start=0, end=90, fill=color)
+        elif ax1 < bx1:
+            # La boîte du bas est plus large à droite.
+            # Remplir le quart NE centré en (ax1, jy).
+            draw.pieslice([ax1 - r, jy - r, ax1 + r, jy + r],
+                          start=270, end=360, fill=color)
 
 
 def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> str:
     """
-    Overlay Pinterest avec surlignage noir arrondi par ligne :
+    Overlay Pinterest avec blob de surlignage unifié :
 
-    ┌──────────────────────────────┐
-    │  ░░░░░ gradient sombre ░░░░░ │  ← 42% de l'image
-    │                              │
-    │   ╭───────────────────╮      │
-    │   │  TITRE EN CAVEAT  │      │  ← highlight noir 90% + texte blanc
-    │   ╰───────────────────╯      │
-    │   ╭──────────────────────╮   │
-    │   │  DEUXIÈME LIGNE ICI  │   │  ← chaque ligne a son propre highlight
-    │   ╰──────────────────────╯   │
-    │            ─────             │  ← tiret décoratif
-    │                              │
-    ├──────────────────────────────┤
-    │     [photo intacte]          │  ← 58% bas visible
-    └──────────────────────────────┘
-
-    Caractéristiques :
-    • Highlight noir (0,0,0) opacité 90% par ligne, coins arrondis
-    • Padding horizontal et vertical proportionnel à la taille de police
-    • Centrage horizontal exact par ligne
-    • Centrage vertical du bloc dans la zone gradient
-    • Ombre portée gaussienne pour profondeur
-    • Contour sombre fin sur le texte blanc
-    • Jamais de coupure de mot — autofit réduit la police si besoin
-    • Tiret décoratif centré sous le dernier highlight
+    ╭──────────────────────────────────────────╮
+    │  TIDY TECH SETUP (ligne 1, large)        │   ← highlight arrondi extérieur
+    ├──────────────────╮                       │
+    │  SETUP (ligne 2) │  ← coins concaves     │   ← transition fluide
+    ╰──────────────────╯                       │
+    • Padding égal sur les 4 côtés (textbbox)
+    • Boîtes adjacentes snappées au pixel près
+    • Coins intérieurs carrés, concaves aux jonctions
+    • Gradient léger en haut, ombre portée douce
+    • Tiret décoratif sous le bloc
     """
     if output_path is None:
-        ext = ".png" if image_path.endswith(".png") else ".jpg"
+        ext        = ".png" if image_path.endswith(".png") else ".jpg"
         output_path = image_path.replace(ext, f"_final{ext}")
 
-    img = Image.open(image_path).convert("RGBA")
-    W, H = img.size
+    img   = Image.open(image_path).convert("RGBA")
+    W, H  = img.size
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 1. GRADIENT SOMBRE en haut
+    # 1. GRADIENT SOMBRE
     # ══════════════════════════════════════════════════════════════════════════
     BAND_RATIO = 0.48
     BAND_H     = int(H * BAND_RATIO)
@@ -333,7 +382,7 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     grad_pixels = []
     for row in range(BAND_H):
         t     = row / BAND_H
-        alpha = int(160 * (1.0 - t ** 0.55))   # doux, max 160 (assez subtil)
+        alpha = int(160 * (1.0 - t ** 0.55))
         grad_pixels.append((8, 6, 5, alpha))
 
     grad_col = Image.new("RGBA", (1, BAND_H))
@@ -344,7 +393,7 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
     img = Image.alpha_composite(img, band)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 2. AUTOFIT + calcul des zones
+    # 2. AUTOFIT
     # ══════════════════════════════════════════════════════════════════════════
     MARGIN_X  = int(W * 0.07)
     PAD_TOP   = int(H * 0.04)
@@ -358,104 +407,125 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         start=190, minimum=50, spacing=1.20,
     )
     total_txt_h = len(lines) * line_h
-
-    # Centrage vertical dans la zone gradient
-    usable  = BAND_H - PAD_TOP - PAD_BOT
-    start_y = PAD_TOP + max(0, (usable - total_txt_h) // 2)
+    usable      = BAND_H - PAD_TOP - PAD_BOT
+    start_y     = PAD_TOP + max(0, (usable - total_txt_h) // 2)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 3. HIGHLIGHTS ARRONDIS — un rectangle par ligne, centré sur la ligne
+    # 3. CALCUL DES BOÎTES DE HIGHLIGHT
+    #
+    #    On utilise textbbox() pour mesurer le rectangle réel des glyphes
+    #    (hors line-spacing), puis on applique un padding identique sur les
+    #    4 côtés — garantissant que l'écart visuel texte↔bord est uniforme.
     # ══════════════════════════════════════════════════════════════════════════
-    # Padding intérieur du highlight autour du texte
-    HL_PAD_X = int(fsize * 0.28)   # padding gauche/droite (proportionnel)
-    HL_PAD_Y = int(fsize * 0.10)   # padding haut/bas
-    HL_RADIUS = max(8, int(fsize * 0.18))  # rayon des coins arrondis
-    HL_COLOR  = (0, 0, 0, 230)     # noir 90% d'opacité
+    HL_PAD    = int(fsize * 0.20)   # padding égal sur tous les côtés
+    HL_RADIUS = max(10, int(fsize * 0.22))
 
-    highlight_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    # ── Palette de couleurs ─────────────────────────────────────────────────
+    # Chaque palette : (couleur_blob RGBA, couleur_texte RGBA, couleur_contour RGBA)
+    # Toutes les palettes sont choisies pour être lisibles et s'accorder
+    # avec des décors intérieurs (beige, bois, blanc, sage green, etc.)
+    PALETTES = [
+        # (blob_color,              text_color,             stroke_color)
+        ((10,  8,   6,  230),  (255, 255, 255, 255), (20,  15,  10, 255)),  # Noir + Blanc
+        ((38,  35,  55, 225),  (255, 240, 200, 255), (20,  15,  40, 255)),  # Indigo nuit + Or crème
+        ((15,  45,  35, 225),  (245, 235, 210, 255), (10,  30,  20, 255)),  # Vert forêt + Ivoire
+        ((90,  40,  35, 220),  (255, 240, 215, 255), (60,  20,  15, 255)),  # Bordeaux + Crème chaude
+        ((155, 100,  55, 215), (255, 255, 255, 255), (90,  55,  20, 255)),  # Caramel + Blanc
+        ((55,  75,  90, 225),  (240, 225, 200, 255), (25,  40,  55, 255)),  # Ardoise bleue + Sable
+        ((130,  90,  85, 220), (255, 250, 240, 255), (80,  50,  45, 255)),  # Terracotta + Blanc chaud
+        ((30,  50,  65, 225),  (210, 240, 220, 255), (15,  30,  45, 255)),  # Bleu marine + Vert d'eau
+        ((75,  65,  55, 220),  (255, 245, 220, 255), (40,  35,  25, 255)),  # Moka + Vanille
+        ((180, 155, 120, 215), (30,  25,  15, 255),  (120, 100,  70, 255)), # Sable doré + Brun foncé
+    ]
+    import random
+    rng = random.Random(hash(texte))  # seed déterministe → même texte = même palette
+    blob_color, text_color, stroke_color = rng.choice(PALETTES)
+
+    dummy         = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    text_positions = []   # (txt_x, txt_y) pour chaque ligne
+    hl_boxes       = []   # [x0, y0, x1, y1] pour chaque ligne
 
     y = start_y
     for line in lines:
-        lw     = int(_tw(font, line))
-        # Coordonnées du texte (centré horizontalement)
-        txt_x  = (W - lw) // 2
-        txt_y  = y
-        # Rectangle autour de ce texte + padding
-        hl_x0  = txt_x - HL_PAD_X
-        hl_y0  = txt_y - HL_PAD_Y
-        hl_x1  = txt_x + lw + HL_PAD_X
-        hl_y1  = txt_y + fsize + HL_PAD_Y   # fsize = hauteur réelle du glyphe
-        _rounded_rect_rgba(
-            highlight_layer,
-            hl_x0, hl_y0, hl_x1, hl_y1,
-            radius=HL_RADIUS,
-            fill=HL_COLOR,
-        )
+        lw    = int(_tw(font, line))
+        txt_x = (W - lw) // 2
+
+        # textbbox renvoie (left, top, right, bottom) des glyphes réels
+        tbbox = dummy.textbbox((txt_x, y), line, font=font)
+
+        text_positions.append((txt_x, y))
+        hl_boxes.append([
+            tbbox[0] - HL_PAD,   # x0
+            tbbox[1] - HL_PAD,   # y0
+            tbbox[2] + HL_PAD,   # x1
+            tbbox[3] + HL_PAD,   # y1
+        ])
         y += line_h
 
+    # Snap : les boîtes adjacentes se touchent exactement au pixel médian
+    for i in range(len(hl_boxes) - 1):
+        mid_y           = (hl_boxes[i][3] + hl_boxes[i + 1][1]) // 2
+        hl_boxes[i][3]      = mid_y
+        hl_boxes[i + 1][1]  = mid_y
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 4. DESSIN DU BLOB UNIFIÉ
+    # ══════════════════════════════════════════════════════════════════════════
+    highlight_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    _draw_blob(highlight_layer, hl_boxes, HL_RADIUS, blob_color)
     img = Image.alpha_composite(img, highlight_layer)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 4. OMBRE PORTÉE (couche séparée + blur) — sous le texte, sur les highlights
+    # 5. OMBRE PORTÉE (sur le texte, par-dessus le blob)
     # ══════════════════════════════════════════════════════════════════════════
     sh_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     sh_draw  = ImageDraw.Draw(sh_layer)
     sh_off   = max(3, fsize // 32)
     sh_blur  = max(4, fsize // 20)
 
-    y = start_y
-    for line in lines:
-        lw = _tw(font, line)
-        x  = (W - int(lw)) // 2
-        sh_draw.text((x + sh_off, y + sh_off), line, font=font,
-                     fill=(0, 0, 0, 180))
-        y += line_h
-
+    for (txt_x, txt_y), line in zip(text_positions, lines):
+        sh_draw.text((txt_x + sh_off, txt_y + sh_off), line,
+                     font=font, fill=(0, 0, 0, 180))
     sh_layer = sh_layer.filter(ImageFilter.GaussianBlur(radius=sh_blur))
     img      = Image.alpha_composite(img, sh_layer)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 5. TEXTE PRINCIPAL — blanc pur, contour sombre fin
+    # 6. TEXTE PRINCIPAL
     # ══════════════════════════════════════════════════════════════════════════
     draw     = ImageDraw.Draw(img)
     stroke_w = max(2, fsize // 55)
 
-    y = start_y
-    for line in lines:
-        lw = _tw(font, line)
-        x  = (W - int(lw)) // 2
+    for (txt_x, txt_y), line in zip(text_positions, lines):
         draw.text(
-            (x, y), line, font=font,
-            fill=(255, 255, 255, 255),
+            (txt_x, txt_y), line, font=font,
+            fill=text_color,
             stroke_width=stroke_w,
-            stroke_fill=(20, 15, 10, 255),
+            stroke_fill=stroke_color,
         )
-        y += line_h
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 6. TIRET DÉCORATIF centré, juste sous le dernier highlight
+    # 7. TIRET DÉCORATIF — sous le bas du dernier highlight
     # ══════════════════════════════════════════════════════════════════════════
-    last_hl_bottom = start_y + total_txt_h + HL_PAD_Y
-    dash_y   = last_hl_bottom + int(fsize * 0.25)
+    last_box_bottom = hl_boxes[-1][3]
+    dash_y   = last_box_bottom + int(fsize * 0.25)
     dash_hw  = int(W * 0.055)
     dash_cx  = W // 2
     dash_th  = max(2, fsize // 60)
 
     draw.line(
         [(dash_cx - dash_hw, dash_y), (dash_cx + dash_hw, dash_y)],
-        fill=(255, 255, 255, 190),
+        fill=(*text_color[:3], 190),
         width=dash_th,
     )
-    # Micro-points aux extrémités
     dot_r = dash_th + 1
     for dx in [dash_cx - dash_hw, dash_cx + dash_hw]:
         draw.ellipse(
             [dx - dot_r, dash_y - dot_r, dx + dot_r, dash_y + dot_r],
-            fill=(255, 255, 255, 170),
+            fill=(*text_color[:3], 170),
         )
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 7. SAUVEGARDE
+    # 8. SAUVEGARDE
     # ══════════════════════════════════════════════════════════════════════════
     img = img.convert("RGB")
     img.save(output_path, "JPEG", quality=98, optimize=True)

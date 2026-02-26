@@ -55,24 +55,9 @@ class App:
         )
         sub.pack(anchor="w", pady=(0, 20))
         
-        # Canvas and Scrollbar
-        self.canvas = tk.Canvas(self.main_frame, highlightthickness=0)
-        self.scrollbar = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
-        self.scrollable_frame = ttk.Frame(self.canvas)
-        
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
-        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
-        
-        # Bottom Frame for global actions
+        # Bottom Frame for global actions (Packed FIRST at the bottom)
         self.bottom_frame = ttk.Frame(self.main_frame)
-        self.bottom_frame.pack(fill=tk.X, pady=(20, 0))
+        self.bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=(20, 0))
         
         btn_cancel = tk.Button(
             self.bottom_frame, text="🛑 INTERROMPRE (Ne pas pousser)", 
@@ -87,6 +72,24 @@ class App:
             command=lambda: self.close_app(0)
         )
         btn_validate.pack(side="right", padx=10, pady=10)
+
+        # Middle Frame for Canvas and Scrollbar
+        self.middle_frame = ttk.Frame(self.main_frame)
+        self.middle_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        self.canvas = tk.Canvas(self.middle_frame, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.middle_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+        
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
         
         self.row_widgets = {}
 

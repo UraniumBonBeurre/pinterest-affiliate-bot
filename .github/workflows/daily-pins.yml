@@ -1,9 +1,9 @@
 name: Daily Pinterest Autopilot
 
 on:
-# schedule:
+  schedule:
     # Run every 3 hours (8 times a day)
-    # - cron: '0 0,1,3,4,6,8,9,11,12,14,16,17,19,20,22 * * *'
+    - cron: '0 0,12 * * *'
   workflow_dispatch:
     inputs:
       pins_count:
@@ -11,11 +11,20 @@ on:
         required: true
         default: '1'
         type: string
-      publish_to_pinterest:
-        description: 'Publier sur Pinterest (Désactivé = génère et upload R2 uniquement)'
+      publish_sandbox:
+        description: 'Publier sur Pinterest (Mode SANDBOX - tests)'
         required: true
         default: false
         type: boolean
+      publish_production:
+        description: 'Publier sur Pinterest (Mode PRODUCTION - vrai compte)'
+        required: true
+        default: false
+        type: boolean
+
+env:
+  CRON_PUBLISH_MODE: 'sandbox' # Modifié automatiquement par toggle_autopilot.sh. Valeurs: 'sandbox', 'production'
+
 
 jobs:
   run-autopilot:
@@ -47,11 +56,47 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
+      - name: Determine Publish Mode
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.publish_production }}" == "true" ] && [ "${{ github.event.inputs.publish_sandbox }}" == "true" ]; then
+              echo "❌ Error: Cannot select both Sandbox and Production modes."
+              exit 1
+            elif [ "${{ github.event.inputs.publish_production }}" == "true" ]; then
+              echo "PUBLISH_DRY_RUN=false" >> $GITHUB_ENV
+              echo "PINTEREST_API_BASE=https://api.pinterest.com/v5" >> $GITHUB_ENV
+              echo "Mode: Production"
+            elif [ "${{ github.event.inputs.publish_sandbox }}" == "true" ]; then
+              echo "PUBLISH_DRY_RUN=false" >> $GITHUB_ENV
+              echo "PINTEREST_API_BASE=https://api-sandbox.pinterest.com/v5" >> $GITHUB_ENV
+              echo "Mode: Sandbox"
+            else
+              echo "PUBLISH_DRY_RUN=true" >> $GITHUB_ENV
+              echo "PINTEREST_API_BASE=https://api-sandbox.pinterest.com/v5" >> $GITHUB_ENV
+              echo "Mode: Dry Run"
+            fi
+          else
+            # Scheduled run via CRON
+            if [ "${{ env.CRON_PUBLISH_MODE }}" == "production" ]; then
+              echo "PUBLISH_DRY_RUN=false" >> $GITHUB_ENV
+              echo "PINTEREST_API_BASE=https://api.pinterest.com/v5" >> $GITHUB_ENV
+              echo "Mode: Cron Production"
+            elif [ "${{ env.CRON_PUBLISH_MODE }}" == "sandbox" ]; then
+              echo "PUBLISH_DRY_RUN=false" >> $GITHUB_ENV
+              echo "PINTEREST_API_BASE=https://api-sandbox.pinterest.com/v5" >> $GITHUB_ENV
+              echo "Mode: Cron Sandbox"
+            else
+              echo "PUBLISH_DRY_RUN=true" >> $GITHUB_ENV
+              echo "PINTEREST_API_BASE=https://api-sandbox.pinterest.com/v5" >> $GITHUB_ENV
+              echo "Mode: Cron Dry Run"
+            fi
+          fi
+
       - name: Run Autopilot Main Script
         id: autopilot
         env:
           PINS_PER_DAY: ${{ github.event.inputs.pins_count || '1' }}
-          PUBLISH_DRY_RUN: ${{ github.event.inputs.publish_to_pinterest == 'true' && 'false' || 'true' }}
+          # PUBLISH_DRY_RUN and PINTEREST_API_BASE are injected via $GITHUB_ENV from previous step
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           PINTEREST_ACCESS_TOKEN: ${{ secrets.PINTEREST_ACCESS_TOKEN }}
           PINTEREST_BOARD_ID: ${{ secrets.PINTEREST_BOARD_ID }}

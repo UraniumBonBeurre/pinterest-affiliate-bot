@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 780" width="100%" height="100%" style="background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif;">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#cbd5e1" flood-opacity="0.4"/>
+    </filter>
+    <filter id="panel-shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="15" flood-color="#94a3b8" flood-opacity="0.25"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="800" y="60" text-anchor="middle" font-weight="900" font-size="36" fill="#0f172a">ARCHITECTURE &amp; VISION : PINTEREST AUTOPILOT</text>
+  <text x="800" y="90" text-anchor="middle" font-weight="500" font-size="16" fill="#64748b">Mapping Complet du Projet - Publication Automatisée et Modèle d'Affiliation</text>
+
+  <!-- LEFT PANEL : Vision & Ecosystem -->
+  <rect x="40" y="140" width="340" height="580" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="2" filter="url(#panel-shadow)"/>
+  
+  <text x="210" y="190" text-anchor="middle" font-weight="800" font-size="20" fill="#0f172a">🎯 Ambitions &amp; Stratégie</text>
+  
+  <rect x="65" y="215" width="290" height="135" rx="6" fill="#fef2f2" stroke="#fecaca" stroke-width="1"/>
+  <text x="80" y="240" font-weight="bold" font-size="15" fill="#991b1b">Court / Moyen / Long Terme</text>
+  <text x="80" y="265" font-size="14" fill="#7f1d1d">• C/T : Inonder Pinterest de visuels HQ</text>
+  <text x="80" y="290" font-size="14" fill="#7f1d1d">• M/T : Fidéliser &amp; Boost du Taux de Clics</text>
+  <text x="80" y="315" font-size="14" fill="#7f1d1d">• L/T : Achats &amp; Taux de Commandes forts</text>
+  <text x="80" y="335" font-size="14" font-style="italic" fill="#7f1d1d">  -> Impact : Revenus passifs réguliers</text>
+
+  <rect x="65" y="365" width="290" height="150" rx="6" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="80" y="390" font-weight="bold" font-size="15" fill="#166534">Modèle Économique &amp; Outils</text>
+  <text x="80" y="415" font-size="14" fill="#14532d">• Génération IA FLUX.1 : ~1$ / mois</text>
+  <text x="80" y="440" font-size="14" fill="#14532d">• Idéation DeepSeek : Tier Gratuit API</text>
+  <text x="80" y="465" font-size="14" fill="#14532d">• Hébergement R2 : Cloudflare (Gratuit)</text>
+  <text x="80" y="490" font-size="14" fill="#14532d">• Commissions : Amazon (3% à 12%)</text>
+
+  <rect x="65" y="530" width="290" height="160" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="80" y="555" font-weight="bold" font-size="15" fill="#1e40af">Écosystème Connecté</text>
+  <text x="80" y="580" font-size="14" fill="#1e3a8a">• Carrd.co : Création rapide site/apps</text>
+  <text x="80" y="605" font-size="14" fill="#1e3a8a">• Pinterest App : Actuellement en mode</text>
+  <text x="80" y="625" font-size="14" fill="#1e3a8a">  développeur (Soumise et en validation)</text>
+  <text x="80" y="650" font-size="14" fill="#1e3a8a">• GitHub Actions : Le coeur CI/CD</text>
+  <text x="80" y="670" font-size="14" fill="#1e3a8a">  (Tests code local -> GitHub -> Cron)</text>
+
+
+  <!-- COLUMN BACKGROUNDS -->
+  <rect x="400" y="140" width="350" height="580" rx="8" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="8,8"/>
+  <text x="575" y="170" text-anchor="middle" font-weight="bold" font-size="16" fill="#64748b">Étape 1 : Création de la Donnée</text>
+
+  <rect x="780" y="140" width="370" height="580" rx="8" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="8,8"/>
+  <text x="965" y="170" text-anchor="middle" font-weight="bold" font-size="16" fill="#64748b">Étape 2 : Automatisation (Le Moteur)</text>
+
+  <rect x="1180" y="140" width="380" height="580" rx="8" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="8,8"/>
+  <text x="1370" y="170" text-anchor="middle" font-weight="bold" font-size="16" fill="#64748b">Étape 3 : Production Visuelle &amp; Envoi</text>
+
+
+  <!-- ========= PHASE 1 (Data) ========= -->
+  <!-- Box 1 -->
+  <rect x="425" y="200" width="300" height="90" rx="8" fill="#ffffff" stroke="#3b82f6" stroke-width="3" filter="url(#shadow)"/>
+  <text x="575" y="230" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">1. Idéation Automatique (LLM)</text>
+  <text x="575" y="255" text-anchor="middle" font-size="13" fill="#475569">Appel API DeepSeek via Hugging Face</text>
+  <text x="575" y="275" text-anchor="middle" font-size="13" fill="#475569">Génération d'accroches, descriptions, niches</text>
+  
+  <path d="M 575 290 L 575 322" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+
+  <!-- Box 2 -->
+  <rect x="425" y="325" width="300" height="90" rx="8" fill="#ffffff" stroke="#eab308" stroke-width="3" filter="url(#shadow)"/>
+  <text x="575" y="355" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">2. Fichier CSV Local/Git</text>
+  <text x="575" y="380" text-anchor="middle" font-size="13" font-family="monospace" fill="#ca8a04">pins_ideas_to_fill.csv</text>
+  <text x="575" y="400" text-anchor="middle" font-size="13" fill="#475569">Récupération depuis Git, écriture locale</text>
+  
+  <path d="M 575 415 L 575 447" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+
+  <!-- Box 3 -->
+  <rect x="425" y="450" width="300" height="90" rx="8" fill="#ffffff" stroke="#f97316" stroke-width="3" filter="url(#shadow)"/>
+  <text x="575" y="480" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">3. Enrichissement Humain</text>
+  <text x="575" y="505" text-anchor="middle" font-size="13" fill="#475569">Recherche produit et collage manuel URL</text>
+  <text x="575" y="525" text-anchor="middle" font-size="13" fill="#475569">Lien direct Amazon dans amazon_product_url</text>
+
+  <path d="M 575 540 L 575 572" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+
+  <!-- Box 4 -->
+  <rect x="425" y="575" width="300" height="90" rx="8" fill="#ffffff" stroke="#14b8a6" stroke-width="3" filter="url(#shadow)"/>
+  <text x="575" y="605" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">4. Versioning &amp; Sauvegarde</text>
+  <text x="575" y="630" text-anchor="middle" font-size="13" fill="#475569">Push Git des données finalisées</text>
+  <text x="575" y="650" text-anchor="middle" font-size="13" fill="#475569">Transfert de la data vers GitHub Repository</text>
+
+
+  <!-- Cross-Phase Arrow -->
+  <path d="M 725 620 C 760 620, 760 250, 805 250" stroke="#64748b" stroke-width="3" stroke-dasharray="4,4" marker-end="url(#arrow)" fill="none"/>
+
+
+  <!-- ========= PHASE 2 (Automation) ========= -->
+  <!-- Box 5 -->
+  <rect x="810" y="200" width="310" height="120" rx="8" fill="#ffffff" stroke="#8b5cf6" stroke-width="3" filter="url(#shadow)"/>
+  <text x="965" y="230" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">5. GitHub Actions (Autopilot)</text>
+  <text x="965" y="255" text-anchor="middle" font-size="13" fill="#475569">Cron Configurable via toggle_autopilot.sh</text>
+  <text x="965" y="275" text-anchor="middle" font-weight="bold" font-size="12" fill="#ef4444">Activable / Désactivable (ON / OFF)</text>
+  <text x="965" y="295" text-anchor="middle" font-size="12" fill="#475569">Espacements calculés auto (Ex: N posts/jour)</text>
+  
+  <path d="M 965 320 L 965 372" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+
+  <!-- Box 6 -->
+  <rect x="810" y="375" width="310" height="110" rx="8" fill="#ffffff" stroke="#ec4899" stroke-width="3" filter="url(#shadow)"/>
+  <text x="965" y="405" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">6. Extraction Données (Python)</text>
+  <text x="965" y="430" text-anchor="middle" font-size="13" fill="#475569">Le CI récupère 1 ligne aléatoire du CSV</text>
+  <text x="965" y="450" text-anchor="middle" font-size="13" fill="#475569">Parse le lien Amazon via Regex</text>
+  <text x="965" y="470" text-anchor="middle" font-weight="bold" font-size="13" fill="#c026d3">Extrait le code produit unique : l'ASIN</text>
+
+  <!-- Splitting Arrows from Data Engine -->
+  <!-- To Image Gen -->
+  <path d="M 1120 405 C 1160 405, 1160 245, 1205 245" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)" fill="none"/>
+  <!-- To Publish (ASIN Data pass) -->
+  <path d="M 1120 455 C 1170 455, 1170 455, 1205 455" stroke="#64748b" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)" fill="none"/>
+
+
+  <!-- ========= PHASE 3 (Design & Affiliation) ========= -->
+  <!-- Box 7 -->
+  <rect x="1210" y="200" width="320" height="90" rx="8" fill="#ffffff" stroke="#f43f5e" stroke-width="3" filter="url(#shadow)"/>
+  
+  <!-- Badge Pricing -->
+  <rect x="1440" y="185" width="80" height="24" rx="12" fill="#fef08a"/>
+  <text x="1480" y="202" font-size="12" font-weight="bold" fill="#854d0e" text-anchor="middle">~1$ / mois</text>
+
+  <text x="1370" y="235" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">7. Création du Visuel IA</text>
+  <text x="1370" y="255" text-anchor="middle" font-size="13" fill="#475569">Hugging Face (Modèle FLUX.1-schnell)</text>
+  <text x="1370" y="275" text-anchor="middle" font-size="13" fill="#475569">Génère un intérieur déco hyper-réaliste</text>
+
+  <path d="M 1370 290 L 1370 322" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+
+  <!-- Box 8 -->
+  <rect x="1210" y="325" width="320" height="90" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="3" filter="url(#shadow)"/>
+  <text x="1370" y="355" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">8. Typographie Avancée (Python)</text>
+  <text x="1370" y="380" text-anchor="middle" font-size="13" fill="#475569">Librairie PIL (Sans aucune IA !)</text>
+  <text x="1370" y="400" text-anchor="middle" font-size="13" fill="#475569">Ajout police, ombres floutées, placement auto</text>
+
+  <path d="M 1370 415 L 1370 447" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+
+  <!-- Box 9 -->
+  <rect x="1210" y="450" width="320" height="90" rx="8" fill="#ffffff" stroke="#e11d48" stroke-width="3" filter="url(#shadow)"/>
+  <text x="1370" y="480" text-anchor="middle" font-weight="bold" font-size="15" fill="#1e293b">9. Endpoint Pinterest (App Dev)</text>
+  <text x="1370" y="505" text-anchor="middle" font-size="13" fill="#475569">Upload R2 (Cloudflare) -> URL Publique</text>
+  <text x="1370" y="525" text-anchor="middle" font-size="13" fill="#475569">Push du Titre, Visuel, et Lien Partenaire via API</text>
+
+  <path d="M 1370 540 L 1370 572" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+
+  <!-- Box 10 -->
+  <rect x="1210" y="575" width="320" height="90" rx="8" fill="#ffffff" stroke="#eab308" stroke-width="3" filter="url(#shadow)"/>
+  <text x="1370" y="605" text-anchor="middle" font-weight="bold" font-size="16" fill="#1e293b">10. Conversion &amp; Affiliation</text>
+  <text x="1370" y="630" text-anchor="middle" font-size="13" fill="#475569">Renvoi du flux Pinterest vers Amazon ASIN</text>
+  <text x="1370" y="650" text-anchor="middle" font-weight="bold" font-size="14" fill="#15803d">Génération des commissions sur ventes</text>
+
+</svg>

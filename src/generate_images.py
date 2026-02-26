@@ -462,17 +462,21 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
         ])
         y += line_h
 
-    # Snap : les boîtes adjacentes se touchent exactement au pixel médian
-    for i in range(len(hl_boxes) - 1):
-        mid_y           = (hl_boxes[i][3] + hl_boxes[i + 1][1]) // 2
-        hl_boxes[i][3]      = mid_y
-        hl_boxes[i + 1][1]  = mid_y
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 4. DESSIN DU BLOB UNIFIÉ
+    # 4. DESSIN DES BLOCS ARRONDIS (un par ligne, avec espace entre eux)
     # ══════════════════════════════════════════════════════════════════════════
     highlight_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    _draw_blob(highlight_layer, hl_boxes, HL_RADIUS, blob_color)
+    hl_draw = ImageDraw.Draw(highlight_layer)
+    for (hx0, hy0, hx1, hy1) in hl_boxes:
+        try:
+            hl_draw.rounded_rectangle([hx0, hy0, hx1, hy1], radius=HL_RADIUS, fill=blob_color)
+        except AttributeError:  # Pillow < 8.2 fallback
+            hl_draw.rectangle([hx0 + HL_RADIUS, hy0, hx1 - HL_RADIUS, hy1], fill=blob_color)
+            hl_draw.rectangle([hx0, hy0 + HL_RADIUS, hx1, hy1 - HL_RADIUS], fill=blob_color)
+            for (cx, cy) in [(hx0+HL_RADIUS, hy0+HL_RADIUS), (hx1-HL_RADIUS, hy0+HL_RADIUS),
+                             (hx0+HL_RADIUS, hy1-HL_RADIUS), (hx1-HL_RADIUS, hy1-HL_RADIUS)]:
+                hl_draw.ellipse([cx-HL_RADIUS, cy-HL_RADIUS, cx+HL_RADIUS, cy+HL_RADIUS], fill=blob_color)
     img = Image.alpha_composite(img, highlight_layer)
 
     # ══════════════════════════════════════════════════════════════════════════

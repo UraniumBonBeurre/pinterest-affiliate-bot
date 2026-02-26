@@ -162,22 +162,28 @@ _FONT_PATHS = ensure_fonts()
 def generate_image_hf(prompt: str) -> Image.Image:
     """
     Génère une image via l'API Hugging Face (Flux.1-schnell).
+
+    FLUX.1-schnell ne supporte pas le negative_prompt — on injecte
+    l'instruction anti-texte EN TÊTE du prompt positif, là où le modèle
+    lui donne le plus de poids.
     """
     if not HF_TOKEN:
         raise GenerationError("HF_TOKEN n'est pas défini dans .env")
 
+    # ── Instruction anti-texte EN TÊTE du prompt ───────────────────────────
+    # Le modèle pondère plus les tokens du début ; placer les contraintes
+    # ici est nettement plus efficace qu'un suffixe.
+    NO_TEXT_HEADER = (
+        "PURE PHOTOGRAPH with ABSOLUTELY NO TEXT, NO LETTERS, NO WORDS, "
+        "NO NUMBERS, NO LABELS, NO SIGNS, NO LOGOS, NO WATERMARKS, "
+        "NO CAPTIONS, NO WRITING OF ANY KIND anywhere in the image. "
+        "All product surfaces must be plain and label-free. "
+        "Professional interior photography only. Scene: "
+    )
+    full_prompt = NO_TEXT_HEADER + prompt.strip()
+
     API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-
-    # FLUX.1-schnell does NOT support negative_prompt — the only way to
-    # suppress text is to include a strong anti-text instruction in the
-    # positive prompt itself.
-    NO_TEXT_SUFFIX = (
-        " IMPORTANT: absolutely NO text, NO letters, NO words, NO numbers, "
-        "NO labels, NO captions, NO watermarks, NO signs, NO writing of any "
-        "kind anywhere in the image. Pure photographic scene only."
-    )
-    full_prompt = prompt.rstrip() + NO_TEXT_SUFFIX
 
     payload = {
         "inputs": full_prompt,
@@ -205,6 +211,57 @@ def generate_image_hf(prompt: str) -> Image.Image:
         if isinstance(e, GenerationError):
             raise
         raise GenerationError(f"HF Request Error : {e}")
+
+
+def _blur_text_regions(img: Image.Image) -> Image.Image:
+    """
+    Détecte les régions de texte dans l'image générée et les floute.
+
+    Utilise easyocr (CPU) pour la détection. Si le package n'est pas
+    disponible, l'image est retournée inchangée (fail-safe).
+    """
+    try:
+        import easyocr
+        import numpy as np
+    except ImportError:
+        print("[text_blur] easyocr non installé — détection de texte ignorée.")
+        return img
+
+    try:
+        reader  = easyocr.Reader(['en', 'fr'], gpu=False, verbose=False)
+        img_arr = np.array(img)
+        results = reader.readtext(img_arr, detail=1)
+
+        if not results:
+            return img
+
+        img_out = img.copy()
+        for (bbox, _text, conf) in results:
+            if conf < 0.25:          # ignorer les détections trop incertaines
+                continue
+            xs = [p[0] for p in bbox]
+            ys = [p[1] for p in bbox]
+            pad = 30                  # marge autour du bbox
+            x0 = max(0,         int(min(xs)) - pad)
+            y0 = max(0,         int(min(ys)) - pad)
+            x1 = min(img.width, int(max(xs)) + pad)
+            y1 = min(img.height,int(max(ys)) + pad)
+
+            region = img_out.crop((x0, y0, x1, y1))
+            # Flou fort + passage 2× pour bien masquer le texte
+            for _ in range(3):
+                region = region.filter(ImageFilter.GaussianBlur(radius=18))
+            img_out.paste(region, (x0, y0))
+
+        n = len([r for r in results if r[2] >= 0.25])
+        if n:
+            print(f"[text_blur] {n} région(s) de texte floutée(s).")
+        return img_out
+
+    except Exception as e:
+        print(f"[text_blur] Erreur pendant la détection : {e} — image inchangée.")
+        return img
+
 
 # ---------------------------------------------------------------------------
 # TEXT OVERLAY — Pinterest Style + Unified Highlight Blob
@@ -553,13 +610,15 @@ def add_text_overlay(image_path: str, texte: str, output_path: str = None) -> st
 
 def generate_interior_image(image_description: str, image_path: str, overlay_text: str = None) -> str:
     """
-    Génère une image via HF et y ajoute l'overlay texte PIL.
-    Utilisé par le workflow autopilot.
+    Génère une image via HF, floute les régions de texte
+    résiduelles, puis applique l'overlay texte PIL.
     """
-    # Strip any existing "no text" instructions to avoid duplication,
-    # then let generate_image_hf append the canonical suffix.
     clean_desc = image_description.strip()
-    base_img = generate_image_hf(clean_desc)
+    base_img   = generate_image_hf(clean_desc)
+
+    # ── Post-traitement : suppression du texte généré par le modèle ──
+    base_img = _blur_text_regions(base_img)
+
     final_img = base_img.resize((1000, 1500), Image.Resampling.LANCZOS)
     final_img.save(image_path, "JPEG", quality=90)
 

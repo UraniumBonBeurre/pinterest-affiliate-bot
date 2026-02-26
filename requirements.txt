@@ -9,3 +9,5 @@ huggingface_hub
 streamlit
 playwright
 playwright-stealth
+easyocr
+numpy

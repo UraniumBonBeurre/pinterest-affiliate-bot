@@ -149,17 +149,36 @@ Describe a premium aspirational home interior with:
 All content (titles, overlay_text, descriptions) must be in **English**.
 Focus on premium home accessories and organization products."""
 
-        try:
-            response = client.chat_completion(
-                model="deepseek-ai/DeepSeek-V3",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                max_tokens=4500,
-                temperature=0.7
-            )
+        # Fallback chain: try each model in order until one succeeds
+        MODELS = [
+            "deepseek-ai/DeepSeek-V3",
+            "Qwen/Qwen2.5-72B-Instruct",
+            "meta-llama/Llama-3.3-70B-Instruct",
+        ]
+        response = None
+        for model in MODELS:
+            try:
+                print(f"   🤖 Essai avec {model}...")
+                response = client.chat_completion(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    max_tokens=4500,
+                    temperature=0.7
+                )
+                print(f"   ✅ Réponse obtenue via {model}")
+                break  # success — stop trying
+            except Exception as model_err:
+                print(f"   ⚠️  {model} indisponible : {str(model_err)[:120]}")
+                continue
 
+        if response is None:
+            print("❌ Tous les modèles ont échoué pour ce batch.")
+            continue
+
+        try:
             reply_content = response.choices[0].message.content
             data = extract_json(reply_content)
             pins = data.get("pins", [])
@@ -171,10 +190,10 @@ Focus on premium home accessories and organization products."""
             file_exists = os.path.isfile(output_file)
 
             with open(output_file, 'a', encoding='utf-8', newline='') as f:
-                fieldnames = ["search_link_amazon", "amazon_product_url", "title", "overlay_text", 
+                fieldnames = ["search_link_amazon", "amazon_product_url", "title", "overlay_text",
                               "description", "niche", "image_description_for_llm"]
                 writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-                
+
                 if not file_exists:
                     writer.writeheader()
 
@@ -185,7 +204,7 @@ Focus on premium home accessories and organization products."""
 
                     row = {
                         "search_link_amazon": search_link,
-                        "amazon_product_url": "",           # Vide pour remplissage manuel
+                        "amazon_product_url": "",
                         "title": pin.get("title", ""),
                         "overlay_text": pin.get("overlay_text", ""),
                         "description": pin.get("description", ""),
@@ -198,7 +217,7 @@ Focus on premium home accessories and organization products."""
             print(f"✅ {len(pins)} idées ajoutées")
 
         except Exception as e:
-            print(f"❌ Erreur lors du batch : {e}")
+            print(f"❌ Erreur lors du traitement de la réponse : {e}")
 
     print(f"\n🎉 GÉNÉRATION TERMINÉE ! {total_generated} idées générées dans {output_file}")
 

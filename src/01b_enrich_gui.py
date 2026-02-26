@@ -193,7 +193,7 @@ class App:
                             for p_page in pages:
                                 try:
                                     url = p_page.url
-                                    if "/dp/" in url or "/gp/product/" in url:
+                                    if "/dp/" in url or "/gp/" in url:
                                         final_url = url
                                         break
                                 except Exception:

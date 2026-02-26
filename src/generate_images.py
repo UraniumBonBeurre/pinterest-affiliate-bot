@@ -169,14 +169,19 @@ def generate_image_hf(prompt: str) -> Image.Image:
     API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
+    # FLUX.1-schnell does NOT support negative_prompt — the only way to
+    # suppress text is to include a strong anti-text instruction in the
+    # positive prompt itself.
+    NO_TEXT_SUFFIX = (
+        " IMPORTANT: absolutely NO text, NO letters, NO words, NO numbers, "
+        "NO labels, NO captions, NO watermarks, NO signs, NO writing of any "
+        "kind anywhere in the image. Pure photographic scene only."
+    )
+    full_prompt = prompt.rstrip() + NO_TEXT_SUFFIX
+
     payload = {
-        "inputs": prompt,
+        "inputs": full_prompt,
         "parameters": {
-            "negative_prompt": (
-                "cartoon, anime, illustration, painting, blurry, low quality, "
-                "deformed, ugly, extra objects, text, watermark, people, faces, "
-                "animals, fantasy, overexposed, underexposed"
-            ),
             "width": 1000,
             "height": 1500,
         },
@@ -551,7 +556,10 @@ def generate_interior_image(image_description: str, image_path: str, overlay_tex
     Génère une image via HF et y ajoute l'overlay texte PIL.
     Utilisé par le workflow autopilot.
     """
-    base_img = generate_image_hf(image_description)
+    # Strip any existing "no text" instructions to avoid duplication,
+    # then let generate_image_hf append the canonical suffix.
+    clean_desc = image_description.strip()
+    base_img = generate_image_hf(clean_desc)
     final_img = base_img.resize((1000, 1500), Image.Resampling.LANCZOS)
     final_img.save(image_path, "JPEG", quality=90)
 

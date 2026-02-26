@@ -36,12 +36,11 @@ def upload_to_r2(local_image_path: str) -> str:
     
     return public_url
 
-def publish_single_pin(local_image_path: str, title: str, asin: str) -> bool:
+def publish_single_pin(local_image_path: str, title: str, affiliate_link: str, description: str = None) -> bool:
     """
     1. Upload image to Cloudflare R2
     2. Delete local image to save space
-    3. Build Amazon Link
-    4. Publish to Pinterest
+    3. Publish to Pinterest with the provided affiliate_link
     Used primarily by the Autopilot functionality.
     """
     print(f"[{now_ts()}] Uploading to Cloudflare R2...")
@@ -60,21 +59,26 @@ def publish_single_pin(local_image_path: str, title: str, asin: str) -> bool:
         
     print(f"[{now_ts()}] Publishing to Pinterest Board {PINTEREST_BOARD_ID}...")
     api = PinterestAPI(access_token=PINTEREST_ACCESS_TOKEN, api_base=PINTEREST_API_BASE)
-    
-    affiliate_url = get_amz_link(asin)
-    description = f"Magnifique idée déco hyper réaliste : {title}. Pensez à l'ajouter à vos tableaux d'aménagement intérieur ! [LIEN_AFFILIATE]".replace("[LIEN_AFFILIATE]", affiliate_url)
+
+    # Build final description: replace [LIEN_AFFILIATE] placeholder if present
+    if description and description not in ("", "nan"):
+        final_description = description.replace("[LIEN_AFFILIATE]", affiliate_link)
+    else:
+        # Fallback generic description
+        final_description = f"Découvrez cette idée déco premium : {title}. 🛒 Voir sur Amazon → {affiliate_link}"
     
     if PUBLISH_DRY_RUN:
-        print(f"DRY RUN: Would publish '{title}' -> {affiliate_url}")
+        print(f"DRY RUN: Would publish '{title}' -> {affiliate_link}")
         print(f"Image used: {image_url}")
+        print(f"Description (first 120 chars): {final_description[:120]}")
         return True
     else:
         try:
             res = api.create_pin(
                 board_id=PINTEREST_BOARD_ID,
                 title=title,
-                description=description,
-                link=affiliate_url,
+                description=final_description,
+                link=affiliate_link,
                 image_public_url=image_url
             )
             pin_id = res.get("id")
@@ -83,6 +87,7 @@ def publish_single_pin(local_image_path: str, title: str, asin: str) -> bool:
         except PinterestAPIException as e:
             print(f"[{now_ts()}] Pinterest API Error: {e}")
             raise
+
             
 def publish_batch():
     input_path = DATA_DIR / "pins_ready.csv"

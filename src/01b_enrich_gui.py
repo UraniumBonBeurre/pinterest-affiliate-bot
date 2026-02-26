@@ -87,6 +87,19 @@ class App:
         )
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # ── Mouse wheel binding (macOS + Linux + Windows) ──────────────────
+        def _on_mousewheel(event):
+            if event.num == 4:          # Linux scroll up
+                self.canvas.yview_scroll(-1, "units")
+            elif event.num == 5:        # Linux scroll down
+                self.canvas.yview_scroll(1, "units")
+            else:                       # macOS / Windows
+                self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        self.canvas.bind_all("<MouseWheel>", _on_mousewheel)   # Windows / macOS
+        self.canvas.bind_all("<Button-4>", _on_mousewheel)     # Linux
+        self.canvas.bind_all("<Button-5>", _on_mousewheel)     # Linux
         
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
@@ -97,6 +110,20 @@ class App:
         self.exit_code = code
         self.root.destroy()
 
+    # French niche labels for quick reading
+    NICHE_FR = {
+        "living_room_storage"    : "Salon — rangement",
+        "bedroom_essentials"     : "Chambre — essentiels",
+        "desk_organization"      : "Bureau — organisation",
+        "cable_management"       : "Gestion des câbles",
+        "small_space_solutions"  : "Petits espaces",
+        "kitchen_organization"   : "Cuisine — organisation",
+        "bathroom_storage"       : "Salle de bain — rangement",
+        "entryway_decor"         : "Entrée — décoration",
+        "outdoor_living"         : "Extérieur — vie outdoor",
+        "bricolage"              : "Bricolage / DIY",
+    }
+
     def populate_rows(self):
         # Clear existing
         for widget in self.scrollable_frame.winfo_children():
@@ -105,7 +132,10 @@ class App:
         pending_count = 0
         for idx, row in self.df.iterrows():
             amz_url = str(row.get('amazon_product_url', '')).strip()
-            title = str(row.get('title', '')).strip()
+            title   = str(row.get('title', '')).strip()
+            overlay = str(row.get('overlay_text', '')).strip()   # 2-4 mots percutants
+            niche   = str(row.get('niche', '')).strip()
+            niche_fr = self.NICHE_FR.get(niche, niche.replace('_', ' ').title())
             
             # Skip if already filled, or empty row
             if (amz_url and amz_url.lower() != 'nan') or not title:
@@ -114,17 +144,34 @@ class App:
             pending_count += 1
             frame = ttk.Frame(self.scrollable_frame, borderwidth=1, relief="solid")
             frame.pack(fill="x", pady=7, padx=5, expand=True)
+
+            # ── Left: text block ──────────────────────────────────────────
+            text_block = tk.Frame(frame)
+            text_block.pack(side="left", padx=15, pady=12, fill="x", expand=True)
+
+            # English title (truncated)
+            title_short = title[:75] + ("…" if len(title) > 75 else "")
+            tk.Label(
+                text_block, text=f"🏷️ {title_short}",
+                font=("Arial", 14, "bold"), anchor="w", justify="left", wraplength=500
+            ).pack(anchor="w")
+
+            # French hint: overlay_text in gold + niche category in grey
+            if overlay and overlay.lower() != 'nan':
+                tk.Label(
+                    text_block, text=f"🇫🇷  {overlay}",
+                    font=("Arial", 13), fg="#d97706", anchor="w"
+                ).pack(anchor="w", pady=(2, 0))
+
+            tk.Label(
+                text_block, text=f"📂 {niche_fr}",
+                font=("Arial", 11, "italic"), fg="#6b7280", anchor="w"
+            ).pack(anchor="w")
             
-            # Title Label
-            title_text = f"🏷️ {title[:70]}" + ("..." if len(title)>70 else "")
-            title_lbl = tk.Label(frame, text=title_text, font=("Arial", 15), width=50, anchor="w", justify="left")
-            title_lbl.pack(side="left", padx=15, pady=20)
-            
-            # Status Label
-            status_lbl = tk.Label(frame, text="⏳ En attente", font=("Arial", 13, "bold"), fg="#d97706", width=25, anchor="w")
+            # ── Right: status + button ────────────────────────────────────
+            status_lbl = tk.Label(frame, text="⏳ En attente", font=("Arial", 13, "bold"), fg="#d97706", width=22, anchor="w")
             status_lbl.pack(side="left", padx=10)
             
-            # Open Button
             search_url = str(row.get('search_link_amazon', ''))
             btn = ttk.Button(frame, text="🔍 Ouvrir & Chercher", command=lambda i=idx, s=search_url: self.open_browser(i, s))
             btn.pack(side="right", padx=15, pady=15)

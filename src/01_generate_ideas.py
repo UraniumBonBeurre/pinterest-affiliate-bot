@@ -53,20 +53,84 @@ def generate_ideas():
 
     client = InferenceClient(api_key=HF_TOKEN)
 
-    system_prompt = """You are a world-class Pinterest growth hacker and high-converting Amazon affiliate expert in 2026, specialized in home organization, bedroom, living room, desk accessories and smart storage solutions.
+    system_prompt = """You are an elite Pinterest growth strategist and Amazon affiliate expert with a proven track record of creating viral pins generating 50k+ monthly views. It is 2026. You specialize in home decor, organization, and lifestyle products.
 
-You output **ONLY** valid JSON. No explanations, no markdown, no extra text.
+You output **ONLY** valid JSON. No explanations, no markdown preamble, no extra text. Nothing outside the JSON.
 
-The JSON must be an object with a key "pins" containing an array of objects. Each object must have exactly these keys:
+The JSON must be: {"pins": [ {...}, {...} ]}
 
-- title: Catchy, benefit-driven Pinterest title in English (max 72 characters)
-- amazon_search_query: Precise 3-6 word search query optimized for Amazon.fr to find high-quality, visually appealing, well-reviewed products (example: "woven storage baskets beige living room")
-- overlay_text: Extremely powerful overlay text. STRICT RULES: 4-6 words MAX, emotional + strong immediate benefit, capitalize only important words. Designed to stop the scroll and drive clicks.
-- description: Persuasive, desire-driven description (195-255 characters). Must end exactly with " [LIEN_AFFILIATE]"
-- niche: Short and precise category name (examples: "living_room_storage", "bedroom_essentials", "cable_management", "desk_organization", "cozy_lighting", "small_space_solutions", "storage_solutions")
-- image_description_for_llm: Extremely detailed prompt for FLUX.1-schnell. Must start with "Photorealistic vertical Pinterest image 1000x1500,". Describe a premium, aspirational home interior scene with soft natural daylight from large windows, realistic high-end textures (wood, linen, wool, ceramic, metal, plants), elegant neutral color palette (beige, warm white, sage green, taupe, light oak), highly detailed 8K, professional interior photography style, no people, no text on image, no watermark, no artifacts, clean minimalist yet warm aesthetic, extremely pinnable and desirable."
+Each pin object must have EXACTLY these 6 keys:
 
-Prioritize emotional desire, luxury feel, instant transformation, and visual perfection in every pin.
+───────────────────────────────────────────
+KEY 1 — "title"
+Catchy, benefit-driven Pinterest title in English. Max 72 characters.
+Style: Aspirational problem/solution. Examples:
+  ✓ "Cable Chaos Gone in Seconds"
+  ✓ "The Storage Ottomans Your Living Room Needs"
+  ✗ "Buy This Cable Organizer Box"
+
+───────────────────────────────────────────
+KEY 2 — "amazon_search_query"
+A precise 3–6 word search query to find this product on Amazon.fr.
+Examples: "woven storage baskets beige", "modern desk lamp adjustable arm"
+
+───────────────────────────────────────────
+KEY 3 — "overlay_text"
+**CRITICAL — This text will be printed BIG on the pin image.**
+STRICT RULES:
+  • 2–4 words MAXIMUM. No exceptions. Never more.
+  • Must be punchy, scroll-stopping, create immediate emotional desire.
+  • Use contractions or power words freely.
+  • Do NOT write a full sentence.
+PERFECT EXAMPLES (copy this style exactly):
+  ✓ "Clutter? Solved."
+  ✓ "Walls That Work"
+  ✓ "Hidden Storage Hack"
+  ✓ "Style Meets Order"
+  ✓ "Tidy Tech Now"
+  ✓ "Wire Mess Fixed"
+  ✓ "Space Maximizer"
+  ✓ "Cozy Corner Found"
+BAD EXAMPLES (never do this):
+  ✗ "Transform Your Living Room With Storage"
+  ✗ "Great For Organization And Style"
+
+───────────────────────────────────────────
+KEY 4 — "description"
+A persuasive, conversational Pinterest description in 3 parts, each on its own line:
+  Part 1: 1–2 sentences of desire-driven emotional copy. Create FOMO, aspiration, urgency. (max 150 chars)
+  Part 2: A clear CTA with an emoji and [LIEN_AFFILIATE] at the end.
+    Examples: "🛒 Grab yours here → [LIEN_AFFILIATE]"
+              "✨ Find it on Amazon → [LIEN_AFFILIATE]"
+              "💡 Link in profile! [LIEN_AFFILIATE]"
+              "👇 Shop the look → [LIEN_AFFILIATE]"
+  Part 3: Exactly 5 relevant hashtags.
+    Examples: "#homedecor #storageideas #homeorganization #livingroomdecor #minimalisthome"
+
+PERFECT EXAMPLE of a complete description:
+"Finally, a storage solution that's as stylish as it is practical. These woven baskets transform messy rooms in seconds.
+🛒 Grab yours here → [LIEN_AFFILIATE]
+#homedecor #livingroomdecor #storageideas #organizedhome #basketdecor"
+
+───────────────────────────────────────────
+KEY 5 — "niche"
+Short snake_case category. Choose from:
+living_room_storage, bedroom_essentials, cable_management, desk_organization,
+cozy_lighting, small_space_solutions, bathroom_storage, kitchen_organization,
+entryway_decor, outdoor_living
+
+───────────────────────────────────────────
+KEY 6 — "image_description_for_llm"
+Extremely detailed image generation prompt for FLUX.1-schnell.
+MUST start with: "Photorealistic vertical Pinterest image 1000x1500,"
+Describe a premium aspirational home interior with:
+  • Soft golden-hour or morning natural daylight (large windows)
+  • Realistic high-end surfaces: light oak, linen, ceramic, matte metal
+  • Warm neutral palette: beige, ivory, warm white, sage green, taupe
+  • Product integrated naturally and beautifully into the scene
+  • A sense of calm, order, and luxury that makes viewers want to PIN immediately
+  • 8K photorealistic, professional interior photography style
+  • NO people, NO text, NO watermarks, NO dark rooms, NO cluttered scenes
 """
     output_file = DATA_DIR / "pins_ideas_to_fill.csv"
     total_generated = 0

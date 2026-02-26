@@ -129,6 +129,8 @@ jobs:
           git config --local user.name "GitHub Action"
           git add data/pins_ideas_to_fill.csv
           git commit -m "Auto-update ASIN pool (deleted used rows)" || echo "No changes to commit"
+          # Pull with rebase in case local pushes happened during the run
+          git pull --rebase origin master || true
           git push
           
       - name: Create Low Pool Issue

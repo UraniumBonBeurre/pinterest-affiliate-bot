@@ -1,38 +1,164 @@
 {
-    "_comment": "Stratégie de sélection automatique de niche. Éditez librement.",
-    "niches": [
-        "bedroom_essentials",
-        "living_room_storage",
-        "kitchen_organization",
-        "desk_organization",
-        "cable_management",
-        "bathroom_storage",
-        "small_space_solutions",
-        "entryway_decor",
-        "outdoor_living",
-        "bricolage"
+  "_comment": "Stratégie de sélection automatique de niche — version prod. Éditez librement.",
+  "_version": "2.0",
+  "niches": [
+    "bedroom_essentials",
+    "living_room_storage",
+    "kitchen_organization",
+    "desk_organization",
+    "cable_management",
+    "bathroom_storage",
+    "small_space_solutions",
+    "entryway_decor",
+    "outdoor_living",
+    "bricolage",
+    "cozy_lighting",
+    "closet_organization",
+    "home_office_setup",
+    "pet_organization",
+    "laundry_room",
+    "kids_room_storage",
+    "garage_workshop",
+    "eco_home",
+    "smart_home",
+    "holiday_decor"
+  ],
+  "_niche_descriptions": {
+    "bedroom_essentials": "Accessoires de chambre : rangements, têtes de lit, organisateurs de tiroirs, supports de livre de chevet",
+    "living_room_storage": "Rangements salon : ottomanes, étagères flottantes, consoles, paniers décoratifs",
+    "kitchen_organization": "Organisation cuisine : organisateurs de tiroirs, paniers de placard, racks épices, range-couvercles",
+    "desk_organization": "Bureau & workspace : porte-stylos, sous-mains, bras moniteur, organisateurs câbles",
+    "cable_management": "Gestion des câbles : gaines, clips adhésifs, boîtiers multiprise, stations de charge",
+    "bathroom_storage": "Rangement salle de bain : armoires à pharmacie, organisateurs sous-évier, porte-serviettes",
+    "small_space_solutions": "Solutions petits espaces : meubles multifonctions, rangements verticaux, lits escamotables",
+    "entryway_decor": "Entrée & couloir : bancs de rangement, portes-manteaux, consoles, miroirs, tapis de couloir",
+    "outdoor_living": "Extérieur & terrasse : meubles de jardin, lanternes solaires, rangements terrasse, BBQ",
+    "bricolage": "Atelier & bricolage : rangements outils, établis, systèmes de crochets muraux, coffrets",
+    "cozy_lighting": "Éclairage & ambiance : guirlandes LED, lampes d'ambiance, bougies, veilleuses",
+    "closet_organization": "Organisation dressing & penderie : cintres velours, organisateurs étagères, boîtes empilables",
+    "home_office_setup": "Bureau à domicile : fauteuils ergonomiques, étagères, lampes de bureau, tapis bureau",
+    "pet_organization": "Maison avec animaux : gamelles design, rangements jouets, lits, fontaines à eau",
+    "laundry_room": "Buanderie : paniers à linge, organisateurs détergents, étendoirs, armoires",
+    "kids_room_storage": "Rangement chambre enfant : étagères basses, bacs à jouets, organisateurs livres, coffres",
+    "garage_workshop": "Garage & atelier : racks muraux, systèmes de pegboard, coffrets outils, établis pliants",
+    "eco_home": "Maison durable : produits ménagers solides, sacs réutilisables, composteurs, filtres eau",
+    "smart_home": "Maison connectée : prises intelligentes, ampoules RGB, interrupteurs tactiles, assistants",
+    "holiday_decor": "Décoration saisonnière : Noël, Halloween, Pâques, printemps — ornements & textiles"
+  },
+  "seasonal_boost": {
+    "12-01": [
+      "bedroom_essentials",
+      "cable_management",
+      "cozy_lighting",
+      "holiday_decor",
+      "home_office_setup",
+      "small_space_solutions",
+      "closet_organization"
     ],
-    "seasonal_boost": {
-        "12-02": [
-            "bedroom_essentials",
-            "cable_management",
-            "small_space_solutions"
-        ],
-        "03-05": [
-            "outdoor_living",
-            "entryway_decor",
-            "small_space_solutions"
-        ],
-        "06-08": [
-            "outdoor_living",
-            "bathroom_storage",
-            "living_room_storage"
-        ],
-        "09-11": [
-            "living_room_storage",
-            "kitchen_organization",
-            "bedroom_essentials"
-        ]
-    },
-    "last_used": {}
+    "02-02": [
+      "bedroom_essentials",
+      "cable_management",
+      "cozy_lighting",
+      "small_space_solutions",
+      "bathroom_storage",
+      "laundry_room",
+      "holiday_decor"
+    ],
+    "03-04": [
+      "outdoor_living",
+      "entryway_decor",
+      "eco_home",
+      "garage_workshop",
+      "bricolage",
+      "kids_room_storage",
+      "holiday_decor",
+      "closet_organization"
+    ],
+    "05-05": [
+      "outdoor_living",
+      "eco_home",
+      "garage_workshop",
+      "bricolage",
+      "pet_organization",
+      "entryway_decor"
+    ],
+    "06-08": [
+      "outdoor_living",
+      "bathroom_storage",
+      "living_room_storage",
+      "smart_home",
+      "pet_organization",
+      "eco_home"
+    ],
+    "09-09": [
+      "home_office_setup",
+      "desk_organization",
+      "kids_room_storage",
+      "cable_management",
+      "back_to_school",
+      "closet_organization"
+    ],
+    "10-11": [
+      "living_room_storage",
+      "kitchen_organization",
+      "bedroom_essentials",
+      "cozy_lighting",
+      "holiday_decor",
+      "bricolage"
+    ]
+  },
+  "_season_rationale": {
+    "12-01": "Hiver/fêtes : nouveaux cadeaux tech à ranger, résolutions organisation, longues soirées intérieur",
+    "02-02": "Fin hiver : ménage de printemps précoce, Saint-Valentin déco, home reset post-fêtes",
+    "03-04": "Printemps : grand ménage, jardinage, Pâques, bricolage relance, rangement vêtements hiver",
+    "05-05": "Beau temps : jardin, terrasse, garage, déménagements mai/juin",
+    "06-08": "Été : extérieur fort, vacances, animaux, piscine, intérieur frais",
+    "09-09": "Rentrée : bureau, école, ré-organisation post-vacances, back to school",
+    "10-11": "Automne : intérieur cosy, cuisine (conserves, pot-au-feu), cuisine, Noël approche"
+  },
+  "_weights": {
+    "_comment": "Popularité relative sur Pinterest FR (volume de recherche estimé). Multiplicateur de base appliqué avant boost saisonnier.",
+    "bedroom_essentials": 1.3,
+    "living_room_storage": 1.4,
+    "kitchen_organization": 1.5,
+    "desk_organization": 1.2,
+    "cable_management": 1.1,
+    "bathroom_storage": 1.3,
+    "small_space_solutions": 1.4,
+    "entryway_decor": 1.2,
+    "outdoor_living": 1.3,
+    "bricolage": 1.1,
+    "cozy_lighting": 1.2,
+    "closet_organization": 1.3,
+    "home_office_setup": 1.2,
+    "pet_organization": 1.0,
+    "laundry_room": 0.9,
+    "kids_room_storage": 1.1,
+    "garage_workshop": 1.0,
+    "eco_home": 1.0,
+    "smart_home": 1.1,
+    "holiday_decor": 1.4
+  },
+  "last_used": {
+    "bedroom_essentials": "2026-02-27T00:13:10.307753",
+    "small_space_solutions": "2026-02-27T00:24:08.634532",
+    "cable_management": "2026-02-27T00:24:58.689675",
+    "kitchen_organization": "2026-02-27T00:25:39.162853",
+    "outdoor_living": "2026-02-27T00:39:47.385434",
+    "desk_organization": "2026-02-27T00:40:08.604227",
+    "living_room_storage": "2026-02-27T00:40:40.001494",
+    "bathroom_storage": "2026-02-27T00:53:05.473826",
+    "entryway_decor": "2026-02-27T00:53:46.025273",
+    "bricolage": "2026-02-27T00:54:25.347375",
+    "cozy_lighting": null,
+    "closet_organization": null,
+    "home_office_setup": null,
+    "pet_organization": null,
+    "laundry_room": null,
+    "kids_room_storage": null,
+    "garage_workshop": null,
+    "eco_home": null,
+    "smart_home": null,
+    "holiday_decor": null
+  }
 }

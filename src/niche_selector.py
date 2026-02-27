@@ -1,15 +1,17 @@
 """
 niche_selector.py — Sélection automatique de niche
 ====================================================
-Stratégie :
-  1. Rotation équilibrée : on préfère les niches les moins récemment utilisées
-  2. Boost saisonnier   : ×2 priorité pour les niches en saison
-  3. Légère randomisation pour éviter les répétitions strictes
+Stratégie de scoring (par ordre de priorité) :
+  1. Poids de base (_weights) : volume de recherche relatif sur Pinterest FR
+  2. Rotation équilibrée : bonus exponentiel au nombre de jours sans utilisation
+  3. Boost saisonnier : ×2 pour les niches en saison (périmètre mensuel)
+  4. Légère randomisation ±20 % pour casser les cycles stricts
 
 Usage :
-    from niche_selector import pick_niche, mark_used
-    niche = pick_niche()        # choix auto
-    mark_used(niche)            # à appeler après génération
+    from niche_selector import pick_niche, pick_niche_multi, mark_used
+    niche  = pick_niche()           # choix auto, 1 niche
+    niches = pick_niche_multi(n=3)  # top 3 niches
+    mark_used(niche)                # à appeler après génération
 """
 
 import json
@@ -44,74 +46,79 @@ def _current_season(data: dict) -> list[str]:
     return []
 
 
-def _days_since_last_use(niche: str, last_used: dict) -> int:
-    """Nombre de jours depuis la dernière utilisation (0 si jamais utilisé)."""
-    if niche not in last_used or not last_used[niche]:
-        return 999  # jamais utilisé → haute priorité
-    last = datetime.fromisoformat(last_used[niche]).date()
-    return (date.today() - last).days
+def _days_since_last_use(niche: str, last_used: dict) -> float:
+    """
+    Nombre de jours depuis la dernière utilisation.
+    Niches jamais utilisées (null / absentes) → 999 jours (priorité max).
+    """
+    val = last_used.get(niche)
+    if not val or val == "null":
+        return 999.0
+    try:
+        last = datetime.fromisoformat(str(val)).date()
+        return max(0.0, (date.today() - last).days)
+    except (ValueError, TypeError):
+        return 999.0
+
+
+def _score(niche: str, data: dict, boosted: list[str], last_used: dict) -> float:
+    """Score composite : poids × jours_depuis_use × boost_saison × jitter."""
+    days   = _days_since_last_use(niche, last_used)
+    weight = data.get("_weights", {}).get(niche, 1.0)
+    boost  = 2.0 if niche in boosted else 1.0
+    jitter = random.uniform(0.8, 1.2)
+    return days * weight * boost * jitter
 
 
 def pick_niche(verbose: bool = True) -> str:
     """
-    Sélectionne automatiquement la meilleure niche selon :
-      - ancienneté depuis la dernière utilisation (plus c'est vieux = mieux)
-      - boost ×2 si niche en saison
-      - légère randomisation ±20 % pour éviter les cycles stricts
+    Sélectionne automatiquement la meilleure niche unique.
     """
-    data = _load()
-    niches = data.get("niches", [])
+    data      = _load()
+    niches    = data.get("niches", [])
     if not niches:
         raise ValueError("Aucune niche définie dans niche_strategy.json")
 
-    last_used   = data.get("last_used", {})
-    boosted     = _current_season(data)
+    last_used = data.get("last_used", {})
+    boosted   = _current_season(data)
 
-    # Score = jours_depuis_dernière_use × (2 si en saison sinon 1) × rand(0.8-1.2)
-    scores = {}
-    for n in niches:
-        days   = _days_since_last_use(n, last_used)
-        boost  = 2.0 if n in boosted else 1.0
-        jitter = random.uniform(0.8, 1.2)
-        scores[n] = days * boost * jitter
-
+    scores = {n: _score(n, data, boosted, last_used) for n in niches}
     chosen = max(scores, key=scores.__getitem__)
 
     if verbose:
+        month = datetime.now().month
         print(f"\n🎯 Niche sélectionnée automatiquement : {chosen}")
+        print(f"   📅 Mois : {month}   |   🔥 Niches en saison : {boosted[:3]}...")
         if chosen in boosted:
-            print(f"   ⬆️  Boost saisonnier actif (mois {datetime.now().month})")
-        print(f"   ⏱  Dernière utilisation : {last_used.get(chosen, 'jamais')}")
-        print(f"   Scores : { {k: round(v,1) for k, v in sorted(scores.items(), key=lambda x: -x[1])[:5]} }")
+            print(f"   ⬆️  Boost saisonnier ×2 actif")
+        last = last_used.get(chosen)
+        print(f"   ⏱  Dernière utilisation : {last or 'jamais'}")
+        top5 = sorted(scores.items(), key=lambda x: -x[1])[:5]
+        print(f"   🏆 Top 5 scores : { {k: round(v, 0) for k, v in top5} }")
 
     return chosen
 
 
 def pick_niche_multi(n: int = 3, verbose: bool = True) -> list[str]:
     """
-    Retourne les N meilleures niches selon score (rotation + saison).
+    Retourne les N meilleures niches selon score composite.
     Utilisé pour générer un batch diversifié en un seul run.
     """
-    data = _load()
-    niches = data.get("niches", [])
+    data      = _load()
+    niches    = data.get("niches", [])
     last_used = data.get("last_used", {})
     boosted   = _current_season(data)
 
-    scores = {}
-    for ni in niches:
-        days   = _days_since_last_use(ni, last_used)
-        boost  = 2.0 if ni in boosted else 1.0
-        jitter = random.uniform(0.8, 1.2)
-        scores[ni] = days * boost * jitter
-
-    top = sorted(scores, key=scores.__getitem__, reverse=True)[:n]
+    scores = {ni: _score(ni, data, boosted, last_used) for ni in niches}
+    top    = sorted(scores, key=scores.__getitem__, reverse=True)[:n]
 
     if verbose:
         month = datetime.now().month
         print(f"\n🎯 Top {n} niches sélectionnées pour le mois {month} :")
         for i, ni in enumerate(top, 1):
             flag = "⬆️ saisonnière" if ni in boosted else ""
-            print(f"   {i}. {ni} (score {round(scores[ni], 0):.0f}) {flag}")
+            w    = data.get("_weights", {}).get(ni, 1.0)
+            print(f"   {i}. {ni} (score {round(scores[ni], 0):.0f}  |  poids {w}) {flag}")
 
     return top
 
@@ -124,5 +131,7 @@ def mark_used(niche: str) -> None:
 
 
 if __name__ == "__main__":
-    niche = pick_niche()
-    print(f"\nNiche choisie : {niche}")
+    # Test rapide
+    print("=== Test niche_selector ===")
+    top3 = pick_niche_multi(n=3)
+    print(f"\nNiches choisies : {top3}")

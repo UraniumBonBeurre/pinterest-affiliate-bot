@@ -52,9 +52,10 @@ Pour 2 000 €/mois :
 ## 3. Les 5 risques majeurs à anticiper maintenant
 
 ### ⚠️ 1. Politique Amazon Associates
-Amazon interdit dans ses CGU d'utiliser des liens affiliés **directement** sur les réseaux sociaux sans divulgation claire. Pinterest l'autorise techniquement, mais Amazon France peut **suspendre ton compte affilié** sans préavis si ton profil n'est pas conforme.
+~~Amazon interdit les liens directs sur les réseaux sociaux.~~ **Mise à jour :** avec un site (même Carrd) enregistré dans ton compte Associates, tu es en règle. Pinterest autorise les liens affiliés depuis 2015. ✅
 
-**Solution impérative :** Intercaler un **blog / landing page intermédiaire** (Notion public, Substack, WordPress minimal) entre le pin Pinterest et Amazon.
+**Action unique restante :** ajouter une ligne de disclosure dans ta bio Pinterest :
+> *"Certains liens sont affiliés Amazon. #ad"*
 
 ### ⚠️ 2. Qualité visuelle
 Les images FLUX.1-schnell sont bonnes mais **génériques**. Les pins qui cartonnent sur Pinterest sont des photos réelles lifestyle ou très haute fidélité. Les pins purement IA ont un CTR 30–50 % inférieur aux vrais produits.
@@ -140,7 +141,12 @@ PHASE 1 — Fondations (Mois 1–3)
 
 PHASE 2 — Montée en puissance (Mois 4–9)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[ ] Ajouter vraies images produit Amazon (via scraper ASIN ou PA-API)
+[ ] **Automatiser l'enrichissement URL via Amazon PA-API** (remplace le GUI manuel)
+    → Demander accès PA-API dans ton compte Associates
+    → 3 ventes qualifiantes requises dans les 180 jours
+    → ✅ Des proches (hors foyer) qui achètent via ton lien sont des ventes valides
+    → ❌ Toi-même ou quelqu'un du même foyer = interdit
+[ ] Produire 5→10 pins/jour dans des niches haute valeur (outils, cuisine pro)
 [ ] Ouvrir 2ème compte Pinterest (niche différente)
 [ ] Ajouter 1 réseau social (Instagram ou TikTok Shorts)
 [ ] Rejoindre Awin ou Rakuten pour des commissions à 8–12 %
@@ -171,12 +177,12 @@ PHASE 3 — Scaling (Mois 10–18)
 
 | Manque | Priorité | Effort |
 |---|---|---|
-| Blog intermédiaire (Amazon ToS) | 🔴 Critique | 2h |
-| Vraies images produit Amazon | 🟠 Élevé | 1–2 jours |
-| Niches haute valeur (outils, cuisine pro) | 🟠 Élevé | Config JSON |
-| 2ème réseau social (Instagram/TikTok) | 🟡 Moyen | 1 semaine |
-| Programmes affiliés hors Amazon | 🟡 Moyen | 1 semaine |
-| SEO Google via blog | 🟢 Long terme | 1 mois |
+| PA-API (remplacer GUI manuel — 100% auto) | 🔴 Urgent | 1 journée |
+| Vraies images produit Amazon (via PA-API)  | 🟠 Élevé  | inclus |
+| Niches haute valeur (outils, cuisine pro)  | 🟠 Élevé  | Config JSON |
+| 2ème réseau social (Instagram/TikTok Shorts)| 🟡 Moyen  | 1 semaine |
+| Programmes affiliés hors Amazon (Awin…)    | 🟡 Moyen  | 1 semaine |
+| SEO Google via blog                         | 🟢 Long terme | 1 mois |
 
 ---
 

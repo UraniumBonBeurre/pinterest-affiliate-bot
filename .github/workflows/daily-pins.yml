@@ -1,9 +1,9 @@
 name: Daily Pinterest Autopilot
 
 on:
-# schedule:
+  schedule:
     # Run every 3 hours (8 times a day)
-    # - cron: '0 0,12 * * *'
+    - cron: '0 0,4,9,14,19 * * *'
   workflow_dispatch:
     inputs:
       pins_count:
@@ -23,7 +23,7 @@ on:
         type: boolean
 
 env:
-  CRON_PUBLISH_MODE: 'sandbox' # Modifié automatiquement par toggle_autopilot.sh. Valeurs: 'sandbox', 'production'
+  CRON_PUBLISH_MODE: 'production' # Modifié automatiquement par toggle_autopilot.sh. Valeurs: 'sandbox', 'production'
 
 
 jobs:

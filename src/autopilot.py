@@ -27,7 +27,14 @@ def main():
 
     # Only publish rows where the user has filled in an amazon_product_url.
     # Rows without amazon_product_url are kept in CSV for later manual enrichment.
-    available_mask = df['amazon_product_url'].notna() & (df['amazon_product_url'].str.strip() != '') & (df['amazon_product_url'].str.strip().str.lower() != 'nan')
+    # A row is publishable if it has a product URL OR a search link.
+    # We cast to str to avoid .str accessor crashes on NaN/float columns.
+    has_product_url = (df['amazon_product_url'].astype(str).str.strip()
+                       .replace({'nan': '', 'None': ''}).ne(''))
+    has_search_link = (df['search_link_amazon'].astype(str).str.strip()
+                       .replace({'nan': '', 'None': ''}).ne(''))
+    
+    available_mask = has_product_url | has_search_link
     available_df = df[available_mask]
     
     available_count = len(available_df)

@@ -52,9 +52,7 @@ def main():
         output_filename = f"pin_test_{idx:03d}.jpg"
         output_path = str(output_dir / output_filename)
         
-        if os.path.exists(output_path):
-            print(f"  -> Image déjà existante (ignorée).")
-            continue
+
             
         try:
             # On copie l'image de base pour travailler dessus

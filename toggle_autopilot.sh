@@ -11,9 +11,10 @@ if [ ! -f "$WORKFLOW_FILE" ]; then
 fi
 
 if [ -z "$1" ]; then
-    echo "Usage: ./toggle_autopilot.sh [on <nombre_de_pins>|off]"
-    echo "  on <N> : Active la publication automatique pour N pins répartis sur la journée"
-    echo "  off    : Met en pause la publication automatique (commente le cron)"
+    echo "Usage: ./toggle_autopilot.sh [on <nombre_de_pins> <sandbox|production> | off]"
+    echo "  on <N> <mode> : Active la publication pour N pins par jour."
+    echo "                  Mode doit être 'sandbox' ou 'production'."
+    echo "  off           : Met en pause la publication automatique (commente le cron)"
     
     # Vérifier l'état actuel
     if grep -q "^    - cron:" "$WORKFLOW_FILE"; then
@@ -27,14 +28,21 @@ fi
 ACTION=$1
 
 if [ "$ACTION" == "on" ]; then
-    if [ -z "$2" ]; then
-        echo "❌ Erreur: L'argument <nombre_de_pins> est obligatoire pour 'on'."
-        echo "Usage: ./toggle_autopilot.sh on <nombre>"
+    if [ -z "$2" ] || [ -z "$3" ]; then
+        echo "❌ Erreur: Le <nombre_de_pins> et le <mode> sont obligatoires pour 'on'."
+        echo "Usage: ./toggle_autopilot.sh on <nombre> <sandbox|production>"
         exit 1
     fi
     N=$2
+    MODE=$3
+    
     if ! [[ "$N" =~ ^[0-9]+$ ]] || [ "$N" -lt 1 ] || [ "$N" -gt 24 ]; then
-        echo "❌ Erreur: Veuillez entrer un nombre entier entre 1 et 24."
+        echo "❌ Erreur: Veuillez entrer un nombre entier de pins entre 1 et 24."
+        exit 1
+    fi
+    
+    if [[ "$MODE" != "sandbox" && "$MODE" != "production" ]]; then
+        echo "❌ Erreur: Le mode doit être soit 'sandbox', soit 'production'."
         exit 1
     fi
     
@@ -50,7 +58,10 @@ if [ "$ACTION" == "on" ]; then
     # Remplacer silencieusement l'ancien cron par le nouveau (commenté ou non)
     sed -i '' "s/^[[:space:]]*#*[[:space:]]*- cron:.*/    - cron: '$CRON'/g" "$WORKFLOW_FILE"
     
-    echo "✅ Cron activé dans $WORKFLOW_FILE"
+    # Mettre à jour la variable d'environnement du mode (sandbox/production)
+    sed -i '' "s/^[[:space:]]*CRON_PUBLISH_MODE:.*/  CRON_PUBLISH_MODE: '$MODE' # Modifié automatiquement par toggle_autopilot.sh. Valeurs: 'sandbox', 'production'/g" "$WORKFLOW_FILE"
+    
+    echo "✅ Cron activé dans $WORKFLOW_FILE en mode '$MODE'"
     
 elif [ "$ACTION" == "off" ]; then
     echo "Désactivation du cron (Mise en pause)..."

@@ -1,0 +1,31 @@
+name: Refresh Pinterest Token
+
+on:
+  schedule:
+    - cron: '0 6 */20 * *'   # Every 20 days at 6am UTC (token expires at 30 days)
+  workflow_dispatch:          # Allow manual trigger from GitHub UI
+
+jobs:
+  refresh-token:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests PyNaCl
+
+      - name: Refresh Pinterest token and update GitHub secrets
+        env:
+          PINTEREST_APP_ID:        ${{ secrets.PINTEREST_APP_ID }}
+          PINTEREST_APP_SECRET:    ${{ secrets.PINTEREST_APP_SECRET }}
+          PINTEREST_REFRESH_TOKEN: ${{ secrets.PINTEREST_REFRESH_TOKEN }}
+          GH_TOKEN:                ${{ secrets.GH_PAT_SECRETS_WRITE }}
+          GH_REPO:                 ${{ github.repository }}
+        run: python3 refresh_pinterest_token.py

@@ -3,28 +3,27 @@ name: Daily Pinterest Autopilot
 on:
   schedule:
     # Run every 3 hours (8 times a day)
-    - cron: '0 0,4,9,14,19 * * *'
+    - cron: "0 0,4,9,14,19 * * *"
   workflow_dispatch:
     inputs:
       pins_count:
-        description: 'Nombre de pins à publier (par exécution)'
+        description: "Nombre de pins à publier (par exécution)"
         required: true
-        default: '1'
+        default: "1"
         type: string
       publish_sandbox:
-        description: 'Publier sur Pinterest (Mode SANDBOX - tests)'
+        description: "Publier sur Pinterest (Mode SANDBOX - tests)"
         required: true
         default: false
         type: boolean
       publish_production:
-        description: 'Publier sur Pinterest (Mode PRODUCTION - vrai compte)'
+        description: "Publier sur Pinterest (Mode PRODUCTION - vrai compte)"
         required: true
         default: false
         type: boolean
 
 env:
-  CRON_PUBLISH_MODE: 'production' # Modifié automatiquement par toggle_autopilot.sh. Valeurs: 'sandbox', 'production'
-
+  CRON_PUBLISH_MODE: "production" # Modifié automatiquement par toggle_autopilot.sh. Valeurs: 'sandbox', 'production'
 
 jobs:
   run-autopilot:
@@ -32,30 +31,21 @@ jobs:
     permissions:
       contents: write
       issues: write
-      
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        
-      - name: Randomize Start Time
-        if: github.event_name == 'schedule'
-        run: |
-          # Sleep for a random amount of time between 0 and 2 hours (up to 7200 seconds) 
-          # to spread the execution within the 3-hour cron window.
-          DELAY=$((RANDOM % 7200))
-          echo "Sleeping for $DELAY seconds to humanize execution time..."
-          sleep $DELAY
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-          
+          python-version: "3.11"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          
+
       - name: Determine Publish Mode
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -132,7 +122,7 @@ jobs:
           # Pull with rebase in case local pushes happened during the run
           git pull --rebase origin master || true
           git push
-          
+
       - name: Create Low Pool Issue
         if: steps.autopilot.outputs.pool_low == 'true'
         env:

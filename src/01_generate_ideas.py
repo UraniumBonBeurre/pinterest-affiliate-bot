@@ -110,24 +110,29 @@ Always include 1-2 words that UNIQUELY IDENTIFY the product category within the 
 
 ───────────────────────────────────────────
 KEY 3 — "overlay_text"
-**CRITICAL — This text will be printed BIG on the pin image.**
+**CRITICAL — This text will be printed BIG on the pin image. It must STOP the scroll.**
 STRICT RULES:
-  • 2–4 words MAXIMUM. No exceptions. Never more.
-  • Must be punchy, scroll-stopping, create immediate emotional desire.
-  • Use contractions or power words freely.
-  • Do NOT write a full sentence.
-PERFECT EXAMPLES (copy this style exactly):
-  ✓ "Clutter? Solved."
-  ✓ "Walls That Work"
-  ✓ "Hidden Storage Hack"
-  ✓ "Style Meets Order"
-  ✓ "Tidy Tech Now"
-  ✓ "Wire Mess Fixed"
-  ✓ "Space Maximizer"
-  ✓ "Cozy Corner Found"
+  • 2–4 words MAXIMUM. Never more. Ever.
+  • Must trigger an IMMEDIATE emotional reaction: desire, curiosity, FOMO, or relief.
+  • Feel like a secret tip, a satisfying discovery, or a bold promise.
+  • Use power words: Got It. Fixed. Done. Finally. Zero. Perfect. Never Again. Yes.
+  • Do NOT write a generic label like the category name.
+  • Do NOT describe the product literally.
+PERFECT EXAMPLES (copy this energy exactly):
+  ✓ "Finally. Done."
+  ✓ "Never Again."
+  ✓ "Want It Now."
+  ✓ "Zero Clutter."
+  ✓ "This Changes Everything."
+  ✓ "Obsessed. Obviously."
+  ✓ "That's The One."
+  ✓ "My Life, Fixed."
+  ✓ "Hidden Gem Found."
+  ✓ "Say Yes To This."
 BAD EXAMPLES (never do this):
-  ✗ "Transform Your Living Room With Storage"
-  ✗ "Great For Organization And Style"
+  ✗ "Smart Home Security" (generic category label — nobody will click)
+  ✗ "Jewelry Organization" (product description — too bland)
+  ✗ "Always Know Who's There" (too long AND too obvious)
 
 ───────────────────────────────────────────
 KEY 4 — "description"
@@ -157,14 +162,30 @@ entryway_decor, outdoor_living
 KEY 6 — "image_description_for_llm"
 Extremely detailed image generation prompt for FLUX.1-schnell.
 MUST start with: "Photorealistic vertical Pinterest image 1000x1500,"
-Describe a premium aspirational home interior with:
-  • Soft golden-hour or morning natural daylight (large windows)
-  • Realistic high-end surfaces: light oak, linen, ceramic, matte metal
-  • Warm neutral palette: beige, ivory, warm white, sage green, taupe
-  • Product integrated naturally and beautifully into the scene
-  • A sense of calm, order, and luxury that makes viewers want to PIN immediately
-  • 8K photorealistic, professional interior photography style
-  • NO people, NO text, NO watermarks, NO dark rooms, NO cluttered scenes
+
+⚠️ MOST IMPORTANT RULE: The image MUST directly show the ACTUAL PRODUCT being sold.
+The product is the HERO of the image. It must be front-and-center and immediately recognizable.
+Never generate a generic interior that could match any product.
+
+RULES:
+  1. PRODUCT FIRST: Name the specific product explicitly (e.g. "a video doorbell mounted on a front door frame", "a white rotating jewelry organizer tower on a bedroom dresser", "a bamboo shoe rack in an entryway"). This is non-negotiable.
+  2. CORRECT SETTING: Place the product in its natural, real-world location (front door → doorbell, bathroom counter → beauty organizer, kitchen counter → spice rack, entryway → shoe rack, etc.). NEVER use a car interior, office, or unrelated generic room.
+  3. LIFESTYLE CONTEXT: Show the product in use or beautifully styled in a premium aspirational home interior.
+  4. LIGHTING: Soft golden-hour or morning natural daylight, large windows, warm and inviting.
+  5. SURFACES: Realistic high-end materials — light oak, linen, ceramic, matte metal, marble.
+  6. PALETTE: Warm neutrals — beige, ivory, warm white, sage green, taupe. Avoid cold blues or dark corporate backgrounds.
+  7. MOOD: Calm, ordered, luxurious. A scene that makes viewers want to PIN immediately.
+  8. TECHNICAL: 8K photorealistic, professional interior photography style, shallow depth of field.
+  9. FORBIDDEN: NO people, NO text, NO watermarks, NO car seats, NO dark rooms, NO cluttered chaotic scenes, NO abstract art backgrounds.
+
+PRACTICAL EXAMPLES:
+  Product: video doorbell
+  ✓ "Photorealistic vertical Pinterest image 1000x1500, a sleek black video doorbell mounted on a light-colored rendered exterior wall beside a modern front door with frosted glass panels. Warm morning sunlight. Clean minimalist porch with a potted plant. 8K photorealistic professional architectural photography. No text, no people."
+  ✗ "Photorealistic vertical Pinterest image 1000x1500, a cozy bedroom with soft lighting" (WRONG — must show the actual product)
+
+  Product: rotating jewelry organizer
+  ✓ "Photorealistic vertical Pinterest image 1000x1500, a white rotating jewelry tower organizer on a light oak dresser in a bright minimalist bedroom. Earrings, necklaces and bracelets arranged elegantly on it. Morning light through sheer curtains. Warm neutral palette. 8K photorealistic interior photography. No text, no people."
+  ✗ "Photorealistic vertical Pinterest image 1000x1500, a luxurious master bedroom" (WRONG — no product visible)
 
 ───────────────────────────────────────────
 KEY 7 — "french_hint"

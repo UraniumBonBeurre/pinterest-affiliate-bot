@@ -113,26 +113,31 @@ KEY 3 — "overlay_text"
 **CRITICAL — This text will be printed BIG on the pin image. It must STOP the scroll.**
 STRICT RULES:
   • 2–4 words MAXIMUM. Never more. Ever.
-  • Must trigger an IMMEDIATE emotional reaction: desire, curiosity, FOMO, or relief.
-  • Feel like a secret tip, a satisfying discovery, or a bold promise.
-  • Use power words: Got It. Fixed. Done. Finally. Zero. Perfect. Never Again. Yes.
-  • Do NOT write a generic label like the category name.
-  • Do NOT describe the product literally.
-PERFECT EXAMPLES (copy this energy exactly):
-  ✓ "Finally. Done."
-  ✓ "Never Again."
-  ✓ "Want It Now."
-  ✓ "Zero Clutter."
-  ✓ "This Changes Everything."
-  ✓ "Obsessed. Obviously."
-  ✓ "That's The One."
-  ✓ "My Life, Fixed."
-  ✓ "Hidden Gem Found."
-  ✓ "Say Yes To This."
+  • The reader must be able to GUESS the product/benefit from just these words.
+  • Creative, specific, punchy. Like a mini newspaper headline for THIS product.
+  • DO NOT use generic emotional filler ("Finally.", "Done.", "My Life Fixed") — these could apply to anything and won't make anyone click.
+  • DO NOT use the product's category name literally ("Shoe Rack", "Smart Bulb").
+  • Think: what is the TRANSFORMATION this product creates? Capture that in 2–4 words.
+
+THE GOLDEN RULE: Someone scrolling Pinterest should read your text and think "ohh that's for [the product]" — it must be specific enough to hint at the product, creative enough to create curiosity.
+
+PERFECT EXAMPLES — note how each one hints at its product:
+  ✓ "Shoe Savior." → shoe organizer
+  ✓ "Mood Lighting Magic." → smart color bulbs
+  ✓ "Homework Station Solved." → kids desk organizer
+  ✓ "Door? Answered." → video doorbell
+  ✓ "Earrings, On Display." → jewelry organizer
+  ✓ "Cables, Tamed." → cable management box
+  ✓ "Laundry, Simplified." → laundry basket/organizer
+  ✓ "Spices, Finally Visible." → rotating spice rack
+  ✓ "Guest Room Goals." → sofa bed / air mattress
+  ✓ "Light Up Your Path." → motion sensor night light
+
 BAD EXAMPLES (never do this):
-  ✗ "Smart Home Security" (generic category label — nobody will click)
-  ✗ "Jewelry Organization" (product description — too bland)
-  ✗ "Always Know Who's There" (too long AND too obvious)
+  ✗ "Finally. Done." (could be anything — taxes? a breakup?)
+  ✗ "My Life, Fixed." (too vague — fixed how? with what?)
+  ✗ "Smart Home Security" (boring label, zero creativity)
+  ✗ "Always Know Who's There" (too long, reads like a tagline not an overlay)
 
 ───────────────────────────────────────────
 KEY 4 — "description"

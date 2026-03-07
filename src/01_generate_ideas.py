@@ -43,9 +43,9 @@ def generate_ideas():
     print("🤖 GÉNÉRATEUR D'IDÉES PINS OPTIMISÉ - DEEPSEEK-V3")
     print("==================================================\n")
     
-    if not HF_TOKEN:
-        print("❌ Erreur: HF_TOKEN non configuré dans .env")
-        return
+    #if not HF_TOKEN:
+    #    print("❌ Erreur: HF_TOKEN non configuré dans .env")
+    #    return
 
     raw_niche = input(
         "👉 Thème / niche principale ? "
@@ -252,7 +252,11 @@ Focus on premium home accessories and organization products."""
                     timeout=120,
                 )
                 resp.raise_for_status()
-                reply_content = resp.json()["message"]["content"]
+                msg = resp.json()["message"]
+                # deepseek-v3.2:cloud puts the answer in `thinking` (content is empty)
+                reply_content = msg.get("thinking") or msg.get("content") or ""
+                if not reply_content:
+                    raise ValueError("Both `thinking` and `content` fields are empty in Ollama response")
                 print(f"   ✅ Réponse obtenue via {OLLAMA_MODEL}")
             except Exception as e:
                 print(f"❌ Erreur Ollama ({OLLAMA_MODEL}) : {e}")

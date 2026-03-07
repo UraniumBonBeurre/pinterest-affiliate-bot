@@ -3,11 +3,16 @@ import os
 import csv
 import json
 import re
+import sys
+import requests
 import urllib.parse
-from huggingface_hub import InferenceClient
-from config import HF_TOKEN, DATA_DIR
+from config import DATA_DIR
 from utils import now_ts
 from niche_selector import pick_niche, mark_used
+
+OLLAMA_TOKEN = os.getenv("OLLAMA_TOKEN")
+OLLAMA_API_URL = "https://ollama.com/api/chat"
+OLLAMA_MODEL = "deepseek-v3.2:cloud"
 
 def extract_json(text: str) -> dict:
     """Extraction JSON plus robuste"""
@@ -70,7 +75,11 @@ def generate_ideas():
 
     print(f"\n🚀 Génération de {count} idées au total...")
 
-    client = InferenceClient(api_key=HF_TOKEN)
+    if not OLLAMA_TOKEN:
+        print("❌ OLLAMA_TOKEN n'est pas défini dans .env — impossible d'appeler Ollama.")
+        sys.exit(1)
+
+    client = None  # unused, kept for future refactor reference
 
     system_prompt = """You are an elite Pinterest growth strategist and Amazon affiliate expert with a proven track record of creating viral pins generating 50k+ monthly views. It is 2026. You specialize in home decor, organization, and lifestyle products.
 
@@ -223,36 +232,34 @@ Never translate the marketing copy literally — just name the PRODUCT in plain 
 All content (titles, overlay_text, descriptions) must be in **English**.
 Focus on premium home accessories and organization products."""
 
-            MODELS = [
-                "deepseek-ai/DeepSeek-V3",
-                "Qwen/Qwen2.5-72B-Instruct",
-                "meta-llama/Llama-3.3-70B-Instruct",
-            ]
-            response = None
-            for model in MODELS:
-                try:
-                    print(f"   🤖 Essai avec {model}...")
-                    response = client.chat_completion(
-                        model=model,
-                        messages=[
+            print(f"   🤖 Appel Ollama → {OLLAMA_MODEL}...")
+            try:
+                resp = requests.post(
+                    OLLAMA_API_URL,
+                    headers={
+                        "Authorization": f"Bearer {OLLAMA_TOKEN}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": OLLAMA_MODEL,
+                        "messages": [
                             {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt}
+                            {"role": "user", "content": user_prompt},
                         ],
-                        max_tokens=4500,
-                        temperature=0.7
-                    )
-                    print(f"   ✅ Réponse obtenue via {model}")
-                    break
-                except Exception as model_err:
-                    print(f"   ⚠️  {model} indisponible : {str(model_err)[:120]}")
-                    continue
-
-            if response is None:
-                print("❌ Tous les modèles ont échoué pour ce batch.")
+                        "stream": False,
+                        "options": {"temperature": 0.7},
+                    },
+                    timeout=120,
+                )
+                resp.raise_for_status()
+                reply_content = resp.json()["message"]["content"]
+                print(f"   ✅ Réponse obtenue via {OLLAMA_MODEL}")
+            except Exception as e:
+                print(f"❌ Erreur Ollama ({OLLAMA_MODEL}) : {e}")
+                print("   ⛔ Aucun fallback configuré. Arrêt du batch.")
                 continue
 
             try:
-                reply_content = response.choices[0].message.content
                 data = extract_json(reply_content)
                 pins = data.get("pins", [])
 
